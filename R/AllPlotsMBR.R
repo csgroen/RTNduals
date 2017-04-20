@@ -9,7 +9,7 @@
 #'
 #' @param object A processed object of class \linkS4class{MBR} evaluated by 
 #' the method \code{\link[RTNduals:mbrAssociation]{mbrAssociation}}.
-#' @param names.motifs A vector with 'dual regulon' indentifiers from the 
+#' @param names.duals A vector with 'dual regulon' indentifiers from the 
 #' 'motifsInformation' table.
 #' @param filepath A character string indicating the file path where the plot 
 #' should be saved.
@@ -17,8 +17,7 @@
 #' @param lncols A vector of length 2 indicating the colors of the negative 
 #' and positive target clouds, respectively.
 #' @param lwd  Line width, a decimal value (between 0 and 1).
-#' @param estimator A character string indicating the association metric. 
-#' One of "spearman" (default), "kendall", or "pearson", can be abbreviated.
+#' @param Pvalue A Boolean value that indicates whether the 'dual regulon' p-value will be showed in the plot.
 #' @return A plot with the shared target clouds between dual regulons.
 #' @examples
 #' data("dt4rtn", package = "RTN")
@@ -41,7 +40,7 @@
 #' rmbr <- mbrDuals(rmbr)
 #' ##---
 #' dual <- mbrGet(rmbr, what="dualRegulons")[1]
-#' mbrPlotDuals(rmbr, names.motifs=dual)
+#' mbrPlotDuals(rmbr, names.duals=dual)
 #'
 #' @import graphics
 #' @importFrom grDevices adjustcolor dev.off pdf colorRampPalette
@@ -50,19 +49,19 @@
 #' @export
 
 ##------------------------------------------------------------------------------
-mbrPlotDuals <- function(object, names.motifs = NULL, filepath=NULL, 
+mbrPlotDuals <- function(object, names.duals = NULL, filepath=NULL, 
                            alpha=0.80,lncols=c("darkgreen","darkorange3"), 
-                           lwd=0.70, estimator="spearman")
+                           lwd=0.70, Pvalue = FALSE)
 {
   ##----check object class
   mbr.checks(name="object", para=object)
-  mbr.checks(name="estimator", para=estimator)
+  ##mbr.checks(name="estimator", para=estimator)
   
   rtni <- .merge.tnis(object)
   rtni_para <- tni.get(rtni, what="para")
   estimator <- rtni_para$perm$estimator
   motifstb <- mbrGet(object, what="motifsInformation")
-  motifstb <- .namesMotifs.check(motifstb, names.motifs)
+  motifstb <- .namesDual.check(motifstb, names.duals)
   
   res <- apply(motifstb, 1, function (mtfs)
   {
@@ -70,6 +69,11 @@ mbrPlotDuals <- function(object, names.motifs = NULL, filepath=NULL,
     reg1 <- mtfs[1]
     reg2 <- mtfs[2]
     rval <- as.numeric(mtfs[3])
+    if (Pvalue){
+        pval <- as.numeric(mtfs[4])
+    } else {
+            pval <- NULL
+        }
     labelMotif <- paste(reg1, reg2, sep=".vs.")
     if(!is.null(filepath))
     {
@@ -79,16 +83,17 @@ mbrPlotDuals <- function(object, names.motifs = NULL, filepath=NULL,
       file <- NULL
     }
     .tni.plot.greement(rtni=rtni, estimator=estimator, 
-                       duals=c(reg1, reg2), corVal=rval,file=file, 
+                       duals=c(reg1, reg2), corVal=rval, 
+                       pval = pval, file=file, 
                        alpha=alpha, lwd=lwd, lncols=lncols)
   })
 }
 
 ##------------------------------------------------------------------------------
 ##subfunction for 'mbrPlotDuals'
-.tni.plot.greement<-function(rtni,duals,corVal,file=NULL,
+.tni.plot.greement<-function(rtni, duals, corVal, file=NULL, pval=NULL,
                              lncols=c("blue","red"), 
-                             bgcols=lncols, lwd=0.70, alpha=0.80, 
+                             bgcols=lncols, lwd=0.70, alpha=0.80,
                              estimator='spearman', sharedTargets=TRUE, 
                              mapAssignedAssociation=TRUE)
 {
@@ -157,7 +162,14 @@ mbrPlotDuals <- function(object, names.motifs = NULL, filepath=NULL,
   }
   
   ##---legend
-  legend("topright", legend=paste("R=", corVal, sep=" "), bty="n")
+  if(!is.null(pval)){
+      if(pval <= 2e-16)
+          pval <- 2e-16
+      legend("topright", legend=paste("Adj.Pval=", pval, sep=" "), bty="n")
+  }
+  ##---lines
+  abline(h=0, lwd=1.5, lty="12", col="grey70")
+  abline(v=0, lwd=1.5, lty="12", col="grey70")
   if(!is.null(file))
   {
     dev.off()
@@ -191,31 +203,34 @@ mbrPlotDuals <- function(object, names.motifs = NULL, filepath=NULL,
   mirmt <- tni.get(TNI2, "refnet") [, elreg2]
   rtni_merge@results$tn.ref <- cbind (tni.get(TNI1, "refnet") [, elreg1], 
                                       mirmt)
-  mirmt <- tni.get(TNI2, "tnet") [, elreg2]
-  rtni_merge@results$tn.dpi <- cbind (tni.get(TNI1, "tnet") [, elreg1], 
-                                      mirmt)
-  rtni_merge@status [1:4] <- "[x]"
+  
+  ##---Get the tnet (dpi net)
+  # mirmt <- tni.get(TNI2, "tnet") [, elreg2]
+  # rtni_merge@results$tn.dpi <- cbind (tni.get(TNI1, "tnet") [, elreg1], 
+  #                                     mirmt)
+  # rtni_merge@status [1:4] <- "[x]"
+  rtni_merge@status [1:3] <- "[x]"
   return (rtni_merge)
 }
 
 ##subfunction for 'mbrPlotDuals'
-.namesMotifs.check <- function(motifstb, names.motifs)
+.namesDual.check <- function(motifstb, names.duals)
 {
-  if (!is.null (names.motifs))
+  if (!is.null (names.duals))
   {
-    ##----checks names.motifs
-    if(sum(names.motifs%in%rownames(motifstb)) == 0) 
-      stop("-NOTE: 'names.motifs' should be in 
+    ##----checks names.duals
+    if(sum(names.duals%in%rownames(motifstb)) == 0) 
+      stop("-NOTE: 'names.duals' should be in 
            '@results$motifsInformation!' \n")
-    if(sum(names.motifs%in%rownames(motifstb)) != 
-       length(names.motifs)) 
+    if(sum(names.duals%in%rownames(motifstb)) != 
+       length(names.duals)) 
       stop ("Not all motifs names are available! \n")
     ##----
-    motifstb <- motifstb[names.motifs, 
-                         c("Regulon1","Regulon2", "R")]
+    motifstb <- motifstb[names.duals, 
+                         c("Regulon1","Regulon2", "R", "Hypergeometric.Adjusted.Pvalue")]
   } else
   {
-    motifstb <- motifstb[, c("Regulon1", "Regulon2", "R")]
+    motifstb <- motifstb[, c("Regulon1", "Regulon2", "R", "Hypergeometric.Adjusted.Pvalue")]
   }
   motifstb[, 3] <- round(motifstb[, 3], 2)
   return(motifstb)

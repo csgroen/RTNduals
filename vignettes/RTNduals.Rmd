@@ -115,7 +115,7 @@ The package provides the `mbrPlotDuals` function to visualize 'dual regulon' and
 
 ```{r eval=FALSE}
 dual <- mbrGet(rmbr, what="dualRegulons")[1]
-mbrPlotDuals(rmbr, names.motifs = c(dual), alpha = 0.90)
+mbrPlotDuals(rmbr, names.duals = dual, alpha = 0.90)
 ```
 
 ![title](figures/duals.png)

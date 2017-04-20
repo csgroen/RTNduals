@@ -723,10 +723,15 @@ setMethod( "mbrDuals",
 #'
 #' This function merges two TNI class objects and creates one MBR class object.
 #'
-#' @param tni1 A 'TNI' class object.
-#' @param tni2 Another 'TNI' class object
+#' @param TNI1 A 'TNI' class object.
+#' @param TNI2 Another 'TNI' class object
 #' @param verbose A single logical value specifying to display detailed messages 
 #' (when verbose=TRUE) or not (when verbose=FALSE).
+#' @param regulatoryElements1 A character vector specifying which 
+#' 'TNI1' regulatory elements should be evaluated. It is obligatory when the 'TNI2' is missing. 
+#' @param regulatoryElements2 A character vector specifying which 
+#' 'TNI1' regulatory elements should be evaluated. It is obligatory when the 'TNI2' is missing and can not
+#' be equal fo the 'regulatoryElements1' vector.
 #' @return An \linkS4class{MBR} object.
 #' @examples
 #' data("dt4rtn", package = "RTN")
@@ -757,52 +762,65 @@ setMethod( "mbrDuals",
 ##Combine two TNIs produced separately
 setMethod("tni2mbrPreprocess",
           "TNI",
-          function (tni1,  tni2,  verbose=TRUE)
+          function (TNI1,  TNI2, 
+                    regulatoryElements1=NULL, regulatoryElements2=NULL, 
+                    verbose=TRUE)
           {
-           if(missing(tni1)) stop("NOTE: 'tni1' is missing ", call.=FALSE)
-           if(missing(tni2)) stop("NOTE: 'tni2' is missing ", call.=FALSE)        
-           mbr.checks (name='tni', para=tni1)
-           mbr.checks (name='tni', para=tni2)
-           .combineTNIs (tni1=tni1, tni2=tni2, verbose=verbose)
+           if(missing(TNI1)) stop("NOTE: 'tni1' is missing ", call.=FALSE)
+           if(missing(TNI2)){
+               TNI2 <- TNI1 ##stop("NOTE: 'TNI2' is missing ", call.=FALSE)
+               mbr.checks(name="regulatoryElements1", para=regulatoryElements1)
+               mbr.checks(name="regulatoryElements2", para=regulatoryElements2)
+               ##----
+               regulatoryElements1 <- .checkRegel(TNI1, regulatoryElements1)
+               regulatoryElements2 <- .checkRegel(TNI2, regulatoryElements2)
+               ##----remove duplicated Regulatory Elements
+               TNI1@transcriptionFactors <- regulatoryElements1
+               TNI2@transcriptionFactors <- regulatoryElements2
+           }
+              
+           mbr.checks (name='tni', para=TNI1)
+           mbr.checks (name='tni', para=TNI2)
+           .combineTNIs (tni1=TNI1, tni2=TNI2, verbose=verbose)
            #---get
-           gexp <- tni.get(tni1, what="gexp")
-           regulatoryElements1 <- tni.get(tni1, what="tfs")
-           regulatoryElements2 <- tni.get(tni2, what="tfs")
+           gexp <- tni.get(TNI1, what="gexp")
+           regulatoryElements1 <- tni.get(TNI1, what="tfs")
+           regulatoryElements2 <- tni.get(TNI2, what="tfs")
            ##---- creates MBR object
            object <- .MBRmaker(class="MBR", gexp=gexp,
                                regulatoryElements1=regulatoryElements1,
                                regulatoryElements2=regulatoryElements2)
            #---TNIs Update
-           object <- .mbr.set(name="TNI1", para=tni1, object=object)
-           object <- .mbr.set(name="TNI2", para=tni2, object=object)
+           object <- .mbr.set(name="TNI1", para=TNI1, object=object)
+           object <- .mbr.set(name="TNI2", para=TNI2, object=object)
            #---statu update
-           tni_status <- tni.get(tni1, what="status")
-           status <- names(tni_status[tni_status=="[x]"])
+           TNI_status <- tni.get(TNI1, what="status")
+           status <- names(TNI_status[TNI_status=="[x]"])
            object <- .mbr.set(name="statusUpdate", para=status, object=object)
            #---get Updates
-           tni1_summary <- tni.get(tni1, what="summary")
-           tni2_summary <- tni.get(tni2, what="summary")
+           TNI1_summary <- tni.get(TNI1, what="summary")
+           TNI2_summary <- tni.get(TNI2, what="summary")
            mbr_summary <- mbrGet(object, what="summary")
            mbr_para <- mbrGet(object, what="para")
-           
+
            ##---permutation
-           
-           mbr_para$TNIs$perm <- tni1_summary$para$perm
-           mbr_summary$TNIs$TNI1 <- tni1_summary$results$tnet
+
+           mbr_para$TNIs$perm <- TNI1_summary$para$perm
+           mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
-           mbr_summary$TNIs$TNI2 <- tni2_summary$results$tnet
+           mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
            ##---bootstrap
-           mbr_para$TNIs$boot <- tni1_summary$para$boot
-           mbr_summary$TNIs$TNI1 <- tni1_summary$results$tnet
+           mbr_para$TNIs$boot <- TNI1_summary$para$boot
+           mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
-           mbr_summary$TNIs$TNI2 <- tni2_summary$results$tnet
+           mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
            ##---summary dpi.filter
-           mbr_para$TNIs$dpi <- tni1_summary$para$dpi
-           mbr_summary$TNIs$TNI1 <- tni1_summary$results$tnet
+           mbr_para$TNIs$dpi <- TNI1_summary$para$dpi
+           mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
-           mbr_summary$TNIs$TNI2 <- tni2_summary$results$tnet
+           mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
            #---set
            object <- .mbr.set(name="para", para=mbr_para, object=object)

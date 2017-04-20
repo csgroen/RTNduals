@@ -24,7 +24,9 @@ setGeneric("mbrDuals",
                     evidenceColname=NULL, verbose = TRUE)
              standardGeneric("mbrDuals"), package="RTNduals")
 setGeneric("tni2mbrPreprocess",
-           function(tni1, tni2,  verbose = TRUE)
+           function(TNI1, TNI2,
+                    regulatoryElements1=NULL, regulatoryElements2=NULL,
+                    verbose = TRUE)
              standardGeneric("tni2mbrPreprocess"), package="RTNduals")
 setGeneric("mbrGet",
            function(object, what="status")

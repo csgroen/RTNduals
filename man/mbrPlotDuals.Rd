@@ -4,15 +4,14 @@
 \alias{mbrPlotDuals}
 \title{Plot shared target clouds between dual regulons.}
 \usage{
-mbrPlotDuals(object, names.motifs = NULL, filepath = NULL, alpha = 0.8,
-  lncols = c("darkgreen", "darkorange3"), lwd = 0.7,
-  estimator = "spearman")
+mbrPlotDuals(object, names.duals = NULL, filepath = NULL, alpha = 0.8,
+  lncols = c("darkgreen", "darkorange3"), lwd = 0.7, Pvalue = FALSE)
 }
 \arguments{
 \item{object}{A processed object of class \linkS4class{MBR} evaluated by 
 the method \code{\link[RTNduals:mbrAssociation]{mbrAssociation}}.}
 
-\item{names.motifs}{A vector with 'dual regulon' indentifiers from the 
+\item{names.duals}{A vector with 'dual regulon' indentifiers from the 
 'motifsInformation' table.}
 
 \item{filepath}{A character string indicating the file path where the plot 
@@ -25,8 +24,7 @@ and positive target clouds, respectively.}
 
 \item{lwd}{Line width, a decimal value (between 0 and 1).}
 
-\item{estimator}{A character string indicating the association metric. 
-One of "spearman" (default), "kendall", or "pearson", can be abbreviated.}
+\item{Pvalue}{A Boolean value that indicates whether the 'dual regulon' p-value will be showed in the plot.}
 }
 \value{
 A plot with the shared target clouds between dual regulons.
@@ -55,7 +53,7 @@ rmbr <- mbrAssociation(rmbr, prob=0.75)
 rmbr <- mbrDuals(rmbr)
 ##---
 dual <- mbrGet(rmbr, what="dualRegulons")[1]
-mbrPlotDuals(rmbr, names.motifs=dual)
+mbrPlotDuals(rmbr, names.duals=dual)
 
 }
 

@@ -1,14 +1,14 @@
 Package: RTNduals
 Type: Package
-Title: analysis of co-regulatory network motifs and inference of 'dual
-        regulons'.
-Version: 0.99.3
+Title: Analysis of co-regulatory network motifs and inference of 'dual
+        regulons'
+Version: 0.99.4
 Author: Vinicius S. Chagas, Clarice S. Groeneveld, Gordon Robertson,
         Kerstin B. Meyer, Mauro A. A. Castro
 Maintainer: Vinicius Chagas <vinicius.chagas@ufpr.br>, Mauro Castro
         <mauro.castro@ufpr.br>, Clarice Groeneveld
         <clari.groeneveld@gmail.com>
-Depends: R (>= 3.4), methods, RTN, graphics
+Depends: R (>= 3.3), methods, RTN, graphics
 Imports: grDevices, stats, utils
 Suggests: knitr, rmarkdown, BiocStyle, RUnit, BiocGenerics
 Description: RTNduals is a tool that searches for possible

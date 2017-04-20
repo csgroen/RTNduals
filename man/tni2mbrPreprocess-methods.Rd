@@ -6,12 +6,20 @@
 \alias{tni2mbrPreprocess,TNI-method}
 \title{A preprocessing function for objects of class MBR.}
 \usage{
-\S4method{tni2mbrPreprocess}{TNI}(tni1, tni2, verbose = TRUE)
+\S4method{tni2mbrPreprocess}{TNI}(TNI1, TNI2, regulatoryElements1 = NULL,
+  regulatoryElements2 = NULL, verbose = TRUE)
 }
 \arguments{
-\item{tni1}{A 'TNI' class object.}
+\item{TNI1}{A 'TNI' class object.}
 
-\item{tni2}{Another 'TNI' class object}
+\item{TNI2}{Another 'TNI' class object}
+
+\item{regulatoryElements1}{A character vector specifying which 
+'TNI1' regulatory elements should be evaluated. It is obligatory when the 'TNI2' is missing.}
+
+\item{regulatoryElements2}{A character vector specifying which 
+'TNI1' regulatory elements should be evaluated. It is obligatory when the 'TNI2' is missing and can not
+be equal fo the 'regulatoryElements1' vector.}
 
 \item{verbose}{A single logical value specifying to display detailed messages 
 (when verbose=TRUE) or not (when verbose=FALSE).}
