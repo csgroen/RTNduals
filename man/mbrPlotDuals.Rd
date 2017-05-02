@@ -12,7 +12,7 @@ mbrPlotDuals(object, names.duals = NULL, filepath = NULL, alpha = 0.8,
 the method \code{\link[RTNduals:mbrAssociation]{mbrAssociation}}.}
 
 \item{names.duals}{A vector with 'dual regulon' indentifiers from the 
-'motifsInformation' table.}
+'dualsInformation' table.}
 
 \item{filepath}{A character string indicating the file path where the plot 
 should be saved.}
@@ -33,27 +33,31 @@ A plot with the shared target clouds between dual regulons.
 This function plots the shared target clouds between a regulon pair.
 }
 \examples{
+##--- load a dataset for demonstration
 data("dt4rtn", package = "RTN")
 gexp <- dt4rtn$gexp
 annot <- dt4rtn$gexpIDs
 tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-##---mbrPreprocess
+
+##--- run mbrPreprocess
 rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
 regulatoryElements2=tfs2, gexpIDs=annot)
-##---mbrPermutation
+
+##--- run mbrPermutation
 rmbr <- mbrPermutation(rmbr, nPermutations=10)
-##---mbrBootstrap
+
+##--- run mbrBootstrap
 rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
-##---mbrDpiFilter
-rmbr <- mbrDpiFilter(rmbr)
-##---mbrAssociation
+
+##--- run mbrAssociation
 rmbr <- mbrAssociation(rmbr, prob=0.75)
-##---mbrDuals
+
+##--- run mbrDuals
 rmbr <- mbrDuals(rmbr)
-##---
-dual <- mbrGet(rmbr, what="dualRegulons")[1]
-mbrPlotDuals(rmbr, names.duals=dual)
+
+##--- get inferred duals and plot the shared cloud of targets
+duals <- mbrGet(rmbr, what="dualRegulons")
+mbrPlotDuals(rmbr, names.duals=duals[1])
 
 }
-

@@ -2,8 +2,8 @@
 % Please edit documentation in R/MBR-methods.R
 \docType{methods}
 \name{mbrDuals,MBR-method}
-\alias{mbrDuals}
 \alias{mbrDuals,MBR-method}
+\alias{mbrDuals}
 \title{A summary for results from the MBR methods.}
 \usage{
 \S4method{mbrDuals}{MBR}(object, supplementary.table = NULL,
@@ -25,41 +25,44 @@ the 'supplementary.table'.}
 messages (when verbose=TRUE) or not (when verbose=FALSE).}
 }
 \value{
-An \linkS4class{MBR} object with a data.frame in the slot 'results' 
-listing the input additional evidences.
+An \linkS4class{MBR} object with an updated 'data.frame' in the slot 
+'results' listing the input additional evidences.
 }
 \description{
 This function lists the inferred 'dual regulons' and, if available, 
 adds external evidences.
 }
 \examples{
+##--- load a dataset for demonstration
 data("dt4rtn", package = "RTN")
 gexp <- dt4rtn$gexp
 annot <- dt4rtn$gexpIDs
 tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-##---mbrPreprocess
+
+##--- run mbrAssociation
 rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
 regulatoryElements2=tfs2, gexpIDs=annot)
-##---mbrPermutation
 rmbr <- mbrPermutation(rmbr, nPermutations=10)
-##---mbrBootstrap
 rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
-##---mbrDpiFilter
-rmbr <- mbrDpiFilter(rmbr)
-##---mbrAssociation
 rmbr <- mbrAssociation(rmbr, prob=0.75)
-##---a 'toy' table with supplementary evidences
-motifsInformation <- mbrGet(rmbr, what="motifsInformation")
-n <- nrow(motifsInformation)
-supplementaryTable <- motifsInformation[1:n,c("Regulon1","Regulon2")]
-supplementaryTable$ToyEvidence <- rnorm(n)
-##---mbrDuals
-rmbr <- mbrDuals(rmbr, supplementary.table = supplementaryTable, 
+rmbr <- mbrDuals(rmbr)
+
+##--- check results
+results <- mbrGet(rmbr, what="dualsInformation")
+
+##--- add supplementary evidences
+## here we build a 'toy' example using the 'rnorm' function for 
+## demonstration purposes only!
+supplementaryTable <- results[,c("Regulon1","Regulon2")]
+supplementaryTable$ToyEvidence <- rnorm(nrow(results))
+supplementaryTable
+
+##--- add supplementary evidences with brDuals function
+rmbr <- mbrDuals(rmbr, supplementary.table=supplementaryTable,
 evidenceColname = "ToyEvidence")
-##---motifsInformation with 'Evidence'
-motifsInformation <- mbrGet(rmbr, what="motifsInformation")
-head(motifsInformation)
+
+##--- check updated results
+mbrGet(rmbr, what="dualsInformation")
 
 }
-

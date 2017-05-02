@@ -2,8 +2,8 @@
 % Please edit documentation in R/AllClasses.R
 \docType{class}
 \name{MBR-class}
-\alias{MBR}
 \alias{MBR-class}
+\alias{MBR}
 \title{MBR objects}
 \description{
 MBR: an S4 class for co-regulation analysis and inference of 'dual 
@@ -38,6 +38,7 @@ All the information is stored in nine slots.
 \item{\code{status}}{a character vector specifying the status of the MBR object 
 based on the available methods.}
 }}
+
 \section{Constructor}{
 
 

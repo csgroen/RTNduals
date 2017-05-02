@@ -8,39 +8,32 @@ test_mbr <- function()
     rmbr <- mbrPreprocess(gexp=dt4rtn$gexp, regulatoryElements1=tfs1, 
                            regulatoryElements2=tfs2, gexpIDs=dt4rtn$gexpIDs)
     status <- mbrGet(rmbr, what="status")
-    checkTrue(status["Preprocess"]=="[x]" && status[1]=="[x]" && 
-                status[1]=="[x]")
+    checkTrue(status[1]=="[x]")
     ##mbrPermutation
     rmbr <- mbrPermutation(rmbr, nPermutations=10, estimator="pearson")
     status <- mbrGet(rmbr, what="status")
-    checkTrue(status["Permutation"]=="[x]" && status[2]=="[x]" && 
-                status[2]=="[x]")
+    checkTrue(status[2]=="[x]")
     ##mbrBootstrap
     rmbr <- mbrBootstrap(rmbr, estimator="pearson", nBootstrap=10)
     status <- mbrGet(rmbr, what="status")
-    checkTrue(status["Bootstrap"]=="[x]" && status[3]=="[x]" && 
-                status[3]=="[x]")
+    checkTrue(status[3]=="[x]")
     ##mbrDpiFilter
     rmbr <- mbrDpiFilter(rmbr)
     status <- mbrGet(rmbr, what="status")
-    checkTrue(status["DPI.filter"]=="[x]" && status[4]=="[x]" && 
-                status[4]=="[x]")
+    checkTrue(status[4]=="[x]")
     ##mbr.combine.TNIs
     tni1 <- mbrGet(rmbr, what="TNI1")
     tni2 <- mbrGet(rmbr, what="TNI2")
     rmbr <- tni2mbrPreprocess(tni1, tni2)
     status <- mbrGet(rmbr, what="status")
-    checkTrue(status[1:4]=="[x]" && status[1:4]=="[x]" && 
-                status[1:4]=="[x]")
+    checkTrue(all(status[1:4]=="[x]"))
     ##mbrAssociation
     rmbr <- mbrAssociation(rmbr, prob=0, estimator="pearson")
     status <- mbrGet(rmbr, what="status")
-    motifsInformation <- mbrGet(rmbr, what="motifsInformation")
-    checkTrue(status["Association"]=="[x]" && 
-                  is.data.frame(motifsInformation) && 
-                  (ncol(motifsInformation)==11 || ncol(motifsInformation)==10))
+    dualsInformation <- mbrGet(rmbr, what="dualsInformation")
+    checkTrue(status[5]=="[x]" && is.data.frame(dualsInformation) )
     ##mbr.motifs
     rmbr <- mbrDuals(rmbr)
-    motifsInformation <- mbrGet(rmbr, what="motifsInformation")
-    checkTrue(is.data.frame(motifsInformation))
+    dualsInformation <- mbrGet(rmbr, what="dualsInformation")
+    checkTrue(is.data.frame(dualsInformation))
 }

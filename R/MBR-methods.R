@@ -5,91 +5,64 @@
 #########################################
 ###class builder
 #########################################
-.MBRmaker <- 
-    function(class="MBR", gexp=gexp,
-             regulatoryElements1=regulatoryElements1,
-             regulatoryElements2=regulatoryElements2)
-    {
-        #---creates the 'MBR' object
-        object <- newMBR(class=class, gexp=gexp,
-                         regulatoryElements1=regulatoryElements1,
-                         regulatoryElements2=regulatoryElements2,
-                         TNI1=NULL, TNI2=NULL, 
-                         testedElementsTNI1=character(),
-                         testedElementsTNI2=character(),
-                         dualRegulons=character(),
-                         results=list(), para=list(), summary=list(),
-                         status=character())
-        #---status
-        status <- rep('[ ]', 1, 5)
-        names(status) <- c('Preprocess', 'Permutation',
-                           'Bootstrap', 'DPI.filter', 
-                           'Association')
-        #---parameters
-        sum.info.para <- list()
-        sum.info.para$TNIs$perm <- NA
-        sum.info.para$TNIs$boot <- NA
-        sum.info.para$TNIs$dpi <- NA
-        sum.info.para$MBR$association <- matrix(NA, 1, 3)
-        colnames(sum.info.para$MBR$association) <- c('minRegulonSize',
-                                                     'prob',
-                                                     'estimator')
-        rownames(sum.info.para$MBR$association) <- 'Parameter'
-        #---summary motifsInformation
-        sum.info.summary <- list()
-        sum.info.summary$MBR$Duals <- matrix(NA, 1, 1)
-        colnames(sum.info.summary$MBR$Duals) <- 'numberDuals'
-        rownames(sum.info.summary$MBR$Duals) <- 'duals'
-        
-        #---set
-        object <- .mbr.set(name="status", para=status, object=object)
-        object <- .mbr.set(name="para", para=sum.info.para, object=object)
-        object <- .mbr.set(name="summary", para=sum.info.summary, object=object)
-        return(object)
-    }
-
-
-
+.MBRmaker <- function(gexp=gexp, regulatoryElements1=regulatoryElements1,
+                      regulatoryElements2=regulatoryElements2)
+{
+  #---creates the 'MBR' object
+  object <- newMBR(gexp=gexp,
+                   regulatoryElements1=regulatoryElements1,
+                   regulatoryElements2=regulatoryElements2
+  )
+  #---status
+  status <- rep('[ ]', 1, 5)
+  names(status) <- c('Preprocess', 'Permutation','Bootstrap', 
+                     'DPI.filter', 'Association')
+  #---parameters
+  sum.info.para <- list()
+  sum.info.para$TNIs$perm <- NA
+  sum.info.para$TNIs$boot <- NA
+  sum.info.para$TNIs$dpi <- NA
+  sum.info.para$MBR$association <- matrix(NA, 1, 3)
+  colnames(sum.info.para$MBR$association) <- c('minRegulonSize','prob',
+                                               'estimator')
+  rownames(sum.info.para$MBR$association) <- 'Parameter'
+  #---summary dualsInformation
+  sum.info.summary <- list()
+  sum.info.summary$MBR$Duals <- matrix(NA, 1, 2)
+  colnames(sum.info.summary$MBR$Duals) <- c('testedDuals','inferredDuals')
+  rownames(sum.info.summary$MBR$Duals) <- 'duals'
+  
+  #---set
+  object <- .mbr.set(name="status", para=status, object=object)
+  object <- .mbr.set(name="para", para=sum.info.para, object=object)
+  object <- .mbr.set(name="summary", para=sum.info.summary, object=object)
+  return(object)
+}
 
 #----------------------------------------------------------
 #it creates the 'MBR' class object
-newMBR <- 
-    function(class, gexp, regulatoryElements1, regulatoryElements2, 
-             TNI1, TNI2, testedElementsTNI1, testedElementsTNI2,
-             dualRegulons, results, para, summary, status)
-    {
-        #---checks
-        if(missing(gexp)) stop("NOTE: 'gexp' is missing ", call.=FALSE)
-        if(missing(regulatoryElements1)) 
-            stop("NOTE: 'regulatoryElements1' is missing", call.=FALSE)
-        if(missing(regulatoryElements2)) 
-            stop("NOTE: 'regulatoryElements2' is missing", call.=FALSE)
-        mbr.checks(name='TNI', TNI1)
-        mbr.checks(name='TNI', TNI2)
-        mbr.checks(name='testedElementsTNI', testedElementsTNI1)
-        mbr.checks(name='testedElementsTNI', testedElementsTNI2)
-        mbr.checks(name='dualRegulons', dualRegulons)
-        mbr.checks(name='results', results)
-        mbr.checks(name='para', para)
-        mbr.checks(name='summary', summary)
-        mbr.checks(name='status', status)
-        mbr.checks(name='gexp', gexp)
-        mbr.checks(name='regulatoryElements1', regulatoryElements1)
-        mbr.checks(name='regulatoryElements2', regulatoryElements2)
-        
-        #---creating TNIs
-        regulonsTNI1 <- new("TNI", gexp=gexp, 
-                            transcriptionFactors=regulatoryElements1)
-        regulonsTNI2 <- new("TNI", gexp=gexp, 
-                            transcriptionFactors=regulatoryElements2)
-        
-        #---creating the MBR-object
-        new(class, TNI1=regulonsTNI1, TNI2=regulonsTNI2,
-            testedElementsTNI1=testedElementsTNI1,
-            testedElementsTNI2=testedElementsTNI2,
-            dualRegulons=dualRegulons, results=results,
-            para=para, summary=summary, status=status)
-    }
+newMBR <- function(gexp, regulatoryElements1, regulatoryElements2)
+{
+  #---checks
+  if(missing(gexp)) 
+    stop("NOTE: 'gexp' is missing ", call.=FALSE)
+  if(missing(regulatoryElements1)) 
+    stop("NOTE: 'regulatoryElements1' is missing", call.=FALSE)
+  if(missing(regulatoryElements2)) 
+    stop("NOTE: 'regulatoryElements2' is missing", call.=FALSE)
+  mbr.checks(name='gexp', gexp)
+  mbr.checks(name='regulatoryElements1', regulatoryElements1)
+  mbr.checks(name='regulatoryElements2', regulatoryElements2)
+  
+  #---creating TNIs
+  regulonsTNI1 <- new("TNI", gexp=gexp, 
+                      transcriptionFactors=regulatoryElements1)
+  regulonsTNI2 <- new("TNI", gexp=gexp, 
+                      transcriptionFactors=regulatoryElements2)
+  
+  #---creating MBR-object
+  new(Class="MBR", TNI1=regulonsTNI1, TNI2=regulonsTNI2)
+}
 
 ##------------------------------------------------------------------------------
 #' A preprocessing function for objects of class MBR.
@@ -106,12 +79,14 @@ newMBR <-
 #' \code{\link[RTN:tni.preprocess]{tni.preprocess}} function.
 #' @return A preprocessed 'MBR-class' object.
 #' @examples
+#' ##--- load a dataset for demonstration
 #' data("dt4rtn", package = "RTN")
 #' gexp <- dt4rtn$gexp
 #' annot <- dt4rtn$gexpIDs
 #' tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 #' tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-#' ##---mbrPreprocess
+#' 
+#' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
 #' regulatoryElements2=tfs2, gexpIDs=annot)
 #'
@@ -129,31 +104,30 @@ setMethod("mbrPreprocess",
           function(gexp, regulatoryElements1, regulatoryElements2, 
                    verbose=TRUE,...)
           {
-           ##---
-           mbr.checks(name="verbose", para=verbose)  
-           object <- .MBRmaker(class="MBR", gexp=gexp,
-                              regulatoryElements1=regulatoryElements1,
-                              regulatoryElements2=regulatoryElements2)  
-           ##---get TNIs
-           TNI1 <- mbrGet(object, what="TNI1")
-           TNI2 <- mbrGet(object, what="TNI2")
-           ##---pre-processing TNIs
-           if(verbose) cat("-Preprocessing TNI objects...\n\n")
-           TNI1 <- tni.preprocess(TNI1, verbose=verbose,...=...)
-           TNI2 <- tni.preprocess(TNI2, verbose=verbose,...=...)
-           tfs1 <- tni.get(TNI1, what="tfs")
-           tfs2 <- tni.get(TNI2, what="tfs")
-           mbr.checks(name="regulatoryElements", 
-                      para=c(tfs1,tfs2))
-           
-           ##---set
-           object <- .mbr.set(name="TNI1", para=TNI1, object=object)
-           object <- .mbr.set(name="TNI2", para=TNI2, object=object)
-           object <- .mbr.set(name="statusUpdate", 
-                              para="Preprocess", object=object)
-
-           
-           return(object)
+            ##---
+            mbr.checks(name="verbose", para=verbose)  
+            object <- .MBRmaker(gexp=gexp, 
+                                regulatoryElements1=regulatoryElements1,
+                                regulatoryElements2=regulatoryElements2)  
+            ##---get TNIs
+            TNI1 <- mbrGet(object, what="TNI1")
+            TNI2 <- mbrGet(object, what="TNI2")
+            ##---pre-processing TNIs
+            if(verbose) cat("-Preprocessing TNI objects...\n\n")
+            TNI1 <- tni.preprocess(TNI1, verbose=verbose,...=...)
+            TNI2 <- tni.preprocess(TNI2, verbose=verbose,...=...)
+            tfs1 <- tni.get(TNI1, what="tfs")
+            tfs2 <- tni.get(TNI2, what="tfs")
+            mbr.checks(name="regulatoryElements", para=tfs1)
+            mbr.checks(name="regulatoryElements", para=tfs2)
+            
+            ##---set
+            object <- .mbr.set(name="TNI1", para=TNI1, object=object)
+            object <- .mbr.set(name="TNI2", para=TNI2, object=object)
+            object <- .mbr.set(name="statusUpdate", para="Preprocess", 
+                               object=object)
+            
+            return(object)
           }
 )
 ##------------------------------------------------------------------------------
@@ -171,15 +145,18 @@ setMethod("mbrPreprocess",
 #' @return An \linkS4class{MBR} object with two mutual information matrices, 
 #' one in each "TNI" slot.
 #' @examples
+#' ##--- load a dataset for demonstration
 #' data("dt4rtn", package = "RTN")
 #' gexp <- dt4rtn$gexp
 #' annot <- dt4rtn$gexpIDs
 #' tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 #' tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-#' ##---mbrPreprocess
+#' 
+#' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
 #' regulatoryElements2=tfs2, gexpIDs=annot)
-#' ##---mbrPermutation
+#' 
+#' ##--- run mbrPermutation
 #' rmbr <- mbrPermutation(rmbr, nPermutations=10)
 #'
 #' @import RTN 
@@ -195,40 +172,39 @@ setMethod("mbrPermutation",
           "MBR",
           function(object, verbose=TRUE, ...)
           {
-           ##---checks
-           mbr.checks(name="object", para=object)
-           mbr.checks(name="verbose", para=verbose)
-           ##---get TNIs
-           TNI1 <- mbrGet(object, what="TNI1")
-           TNI2 <- mbrGet(object, what="TNI2")
-           
-           ##---permutation TNIs
-           if(verbose)
-               cat("-Performing permutation analysis for two TNI objects...\n\n")
-           TNI1 <- tni.permutation(TNI1, verbose=verbose,...=...)
-           TNI2 <- tni.permutation(TNI2, verbose=verbose,...=...)
-           #---get
-           tni1_summary <- tni.get(TNI1, what="summary")
-           tni2_summary <- tni.get(TNI2, what="summary")
-           mbr_summary <- mbrGet(object, what="summary")
-           mbr_para <- mbrGet(object, what="para")
-           
-           #---changes
-           mbr_para$TNIs$perm <- tni1_summary$para$perm
-           
-           mbr_summary$TNIs$TNI1 <- tni1_summary$results$tnet
-           colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
-           mbr_summary$TNIs$TNI2 <- tni2_summary$results$tnet
-           colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
-           
-           #---set
-           object <- .mbr.set(name="TNI1", para=TNI1, object=object)
-           object <- .mbr.set(name="TNI2", para=TNI2, object=object)
-           object <- .mbr.set(name="statusUpdate", 
-                              para="Permutation", object=object)
-           object <- .mbr.set(name="para", para=mbr_para, object=object)
-           object <- .mbr.set(name="summary", para=mbr_summary, object=object)
-           return(object)
+            ##---checks
+            mbr.checks(name="object", para=object)
+            mbr.checks(name="verbose", para=verbose)
+            ##---get TNIs
+            TNI1 <- mbrGet(object, what="TNI1")
+            TNI2 <- mbrGet(object, what="TNI2")
+            
+            ##---permutation TNIs
+            if(verbose)
+              cat("-Performing permutation analysis for two TNI objects...\n\n")
+            TNI1 <- tni.permutation(TNI1, verbose=verbose,...=...)
+            TNI2 <- tni.permutation(TNI2, verbose=verbose,...=...)
+            #---get
+            tni1_summary <- tni.get(TNI1, what="summary")
+            tni2_summary <- tni.get(TNI2, what="summary")
+            mbr_summary <- mbrGet(object, what="summary")
+            mbr_para <- mbrGet(object, what="para")
+            
+            #---changes
+            mbr_para$TNIs$perm <- tni1_summary$para$perm
+            mbr_summary$TNIs$TNI1 <- tni1_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
+            mbr_summary$TNIs$TNI2 <- tni2_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
+            
+            #---set
+            object <- .mbr.set(name="TNI1", para=TNI1, object=object)
+            object <- .mbr.set(name="TNI2", para=TNI2, object=object)
+            object <- .mbr.set(name="statusUpdate", para="Permutation", 
+                               object=object)
+            object <- .mbr.set(name="para", para=mbr_para, object=object)
+            object <- .mbr.set(name="summary", para=mbr_summary, object=object)
+            return(object)
           }
 )
 
@@ -246,17 +222,21 @@ setMethod("mbrPermutation",
 #' @return An \linkS4class{MBR} object with two consensus mutual information 
 #' matrices, one in each "TNI" slot.
 #' @examples
+#' ##--- load a dataset for demonstration
 #' data("dt4rtn", package = "RTN")
 #' gexp <- dt4rtn$gexp
 #' annot <- dt4rtn$gexpIDs
 #' tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 #' tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-#' ##---mbrPreprocess
+#' 
+#' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
 #' regulatoryElements2=tfs2, gexpIDs=annot)
-#' ##---mbrPermutation
+#' 
+#' ##--- run mbrPermutation
 #' rmbr <- mbrPermutation(rmbr, nPermutations=10)
-#' ##---mbrBootstrap
+#' 
+#' ##--- run mbrBootstrap
 #' rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
 #'
 #' @import RTN 
@@ -273,40 +253,41 @@ setMethod("mbrBootstrap",
           "MBR",
           function(object, verbose=TRUE, ...)
           {
-           ##---checks
-           mbr.checks(name="object", para=object)
-           mbr.checks(name="verbose", para=verbose)
-           ##---get TNIs
-           TNI1 <- mbrGet(object, what="TNI1")
-           TNI2 <- mbrGet(object, what="TNI2")
-           
-           ##---bootstrap TNIs
-           if(verbose) cat("-Performing bootstrap analysis for two TNI 
-                           objects...\n\n")
-           TNI1 <- tni.bootstrap(TNI1, verbose=verbose,...=...)
-           TNI2 <- tni.bootstrap(TNI2, verbose=verbose,...=...)
-           
-           #---get
-           tni1_summary <- tni.get(TNI1, what="summary")
-           tni2_summary <- tni.get(TNI2, what="summary")
-           mbr_summary <- mbrGet(object, what="summary")
-           mbr_para <- mbrGet(object, what="para")
-           
-           #---changes
-           mbr_para$TNIs$boot <- tni1_summary$para$boot
-           
-           mbr_summary$TNIs$TNI1 <- tni1_summary$results$tnet
-           colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
-           mbr_summary$TNIs$TNI2 <- tni2_summary$results$tnet
-           colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
-           
-           #---set
-           object <- .mbr.set(name="TNI1", para=TNI1, object=object)
-           object <- .mbr.set(name="TNI2", para=TNI2, object=object)
-           object <- .mbr.set(name="statusUpdate", para="Bootstrap", object=object)
-           object <- .mbr.set(name="para", para=mbr_para, object=object)
-           object <- .mbr.set(name="summary", para=mbr_summary, object=object)
-           return(object)
+            ##---checks
+            mbr.checks(name="object", para=object)
+            mbr.checks(name="verbose", para=verbose)
+            ##---get TNIs
+            TNI1 <- mbrGet(object, what="TNI1")
+            TNI2 <- mbrGet(object, what="TNI2")
+            
+            ##---bootstrap TNIs
+            if(verbose) cat("-Performing bootstrap analysis for two TNI 
+                            objects...\n\n")
+            TNI1 <- tni.bootstrap(TNI1, verbose=verbose,...=...)
+            TNI2 <- tni.bootstrap(TNI2, verbose=verbose,...=...)
+            
+            #---get
+            tni1_summary <- tni.get(TNI1, what="summary")
+            tni2_summary <- tni.get(TNI2, what="summary")
+            mbr_summary <- mbrGet(object, what="summary")
+            mbr_para <- mbrGet(object, what="para")
+            
+            #---changes
+            mbr_para$TNIs$boot <- tni1_summary$para$boot
+            
+            mbr_summary$TNIs$TNI1 <- tni1_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
+            mbr_summary$TNIs$TNI2 <- tni2_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
+            
+            #---set
+            object <- .mbr.set(name="TNI1", para=TNI1, object=object)
+            object <- .mbr.set(name="TNI2", para=TNI2, object=object)
+            object <- .mbr.set(name="statusUpdate", para="Bootstrap", 
+                               object=object)
+            object <- .mbr.set(name="para", para=mbr_para, object=object)
+            object <- .mbr.set(name="summary", para=mbr_summary, object=object)
+            return(object)
           }
 )
 
@@ -326,19 +307,24 @@ setMethod("mbrBootstrap",
 #' @return An \linkS4class{MBR} object with two DPI-filtered mutual information 
 #' matrices, one in each "TNI" slot.
 #' @examples
+#' ##--- load a dataset for demonstration
 #' data("dt4rtn", package = "RTN")
 #' gexp <- dt4rtn$gexp
 #' annot <- dt4rtn$gexpIDs
 #' tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 #' tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-#' ##---mbrPreprocess
+#' 
+#' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
 #' regulatoryElements2=tfs2, gexpIDs=annot)
-#' ##---mbrPermutation
+#' 
+#' ##--- run mbrPermutation
 #' rmbr <- mbrPermutation(rmbr, nPermutations=10)
-#' ##---mbrBootstrap
+#' 
+#' ##--- run mbrBootstrap
 #' rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
-#' ##---mbrDpiFilter
+#' 
+#' ##--- run mbrDpiFilter
 #' rmbr <- mbrDpiFilter(rmbr)
 #'
 #' @import RTN 
@@ -355,38 +341,39 @@ setMethod("mbrDpiFilter",
           "MBR",
           function(object, verbose=TRUE, ...)
           {
-           ##---checks
-           mbr.checks(name="object", para=object)
-           mbr.checks(name="verbose", para=verbose)
-           ##---get TNIs
-           TNI1 <- mbrGet(object, what="TNI1")
-           TNI2 <- mbrGet(object, what="TNI2")
-           
-           ##---Dpi filter TNIs
-           if(verbose) cat("-Applying dpi filter for two TNI objects...\n")
-           TNI1 <-tni.dpi.filter(TNI1, verbose=verbose, ...=...)
-           TNI2 <-tni.dpi.filter(TNI2, verbose=verbose, ...=...)
-           #---get
-           tni1_summary <- tni.get(TNI1, what="summary")
-           tni2_summary <- tni.get(TNI2, what="summary")
-           mbr_summary <- mbrGet(object, what="summary")
-           mbr_para <- mbrGet(object, what="para")
-           
-           #---changes
-           mbr_para$TNIs$dpi <- tni1_summary$para$dpi
-           
-           mbr_summary$TNIs$TNI1 <- tni1_summary$results$tnet
-           colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
-           mbr_summary$TNIs$TNI2 <- tni2_summary$results$tnet
-           colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
-           
-           #---set
-           object <- .mbr.set(name="TNI1", para=TNI1, object=object)
-           object <- .mbr.set(name="TNI2", para=TNI2, object=object)
-           object <- .mbr.set(name="statusUpdate", para="DPI.filter", object=object)
-           object <- .mbr.set(name="para", para=mbr_para, object=object)
-           object <- .mbr.set(name="summary", para=mbr_summary, object=object)
-           return(object)
+            ##---checks
+            mbr.checks(name="object", para=object)
+            mbr.checks(name="verbose", para=verbose)
+            ##---get TNIs
+            TNI1 <- mbrGet(object, what="TNI1")
+            TNI2 <- mbrGet(object, what="TNI2")
+            
+            ##---Dpi filter TNIs
+            if(verbose) cat("-Applying dpi filter for two TNI objects...\n")
+            TNI1 <-tni.dpi.filter(TNI1, verbose=verbose, ...=...)
+            TNI2 <-tni.dpi.filter(TNI2, verbose=verbose, ...=...)
+            #---get
+            tni1_summary <- tni.get(TNI1, what="summary")
+            tni2_summary <- tni.get(TNI2, what="summary")
+            mbr_summary <- mbrGet(object, what="summary")
+            mbr_para <- mbrGet(object, what="para")
+            
+            #---changes
+            mbr_para$TNIs$dpi <- tni1_summary$para$dpi
+            
+            mbr_summary$TNIs$TNI1 <- tni1_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
+            mbr_summary$TNIs$TNI2 <- tni2_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
+            
+            #---set
+            object <- .mbr.set(name="TNI1", para=TNI1, object=object)
+            object <- .mbr.set(name="TNI2", para=TNI2, object=object)
+            object <- .mbr.set(name="statusUpdate", para="DPI.filter", 
+                               object=object)
+            object <- .mbr.set(name="para", para=mbr_para, object=object)
+            object <- .mbr.set(name="summary", para=mbr_summary, object=object)
+            return(object)
           }
 )
 
@@ -409,34 +396,35 @@ setMethod("mbrDpiFilter",
 #' @param minRegulonSize A single integer or numeric value specifying the 
 #' minimum number of elements in a regulon. Gene sets with fewer than this 
 #' number are removed from the analysis.
-#' @param prob A quantile filter applyed to the association metric used to 
-#' infer 'dual regulons'.
+#' @param prob A numeric value, representing a quantile threshold applyed to 
+#' the association metric used to infer 'dual regulons'.
 #' @param estimator A character value specifying the estimator used in the 
-#' association analysis. One of "spearman" (default), "kendall", or "pearson", 
-#' can be abbreviated.
+#' association analysis. One of "spearman" (default), "kendall", or "pearson".
 #' @param pAdjustMethod A single character value specifying the p-value 
-#' adjustment method to be used (see 'p.adjust' for details).
+#' adjustment method to be used (see 'p.adjust' function for details).
 #' @param verbose A single logical value specifying to display detailed 
 #' messages (when verbose=TRUE) or not (when verbose=FALSE).
 #' @return An \linkS4class{MBR} object with two data.frames in the slot 
-#' 'results' listing the inferred 'dual regulons' and a hypergeometric test 
-#' for each 'dual regulon'.
+#' 'results' listing the inferred 'dual regulons' and correspoding statistics.
 #' @examples
+#' ##--- load a dataset for demonstration
 #' data("dt4rtn", package = "RTN")
 #' gexp <- dt4rtn$gexp
 #' annot <- dt4rtn$gexpIDs
 #' tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 #' tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-#' ##---mbrPreprocess
+#' 
+#' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
 #' regulatoryElements2=tfs2, gexpIDs=annot)
-#' ##---mbrPermutation
+#' 
+#' ##--- run mbrPermutation
 #' rmbr <- mbrPermutation(rmbr, nPermutations=10)
-#' ##---mbrBootstrap
+#' 
+#' ##--- run mbrBootstrap
 #' rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
-#' ##---mbrDpiFilter
-#' rmbr <- mbrDpiFilter(rmbr)
-#' ##---mbrAssociation
+#' 
+#' ##--- run mbrAssociation
 #' rmbr <- mbrAssociation(rmbr, prob=0.75)
 #'
 #' @import RTN 
@@ -454,168 +442,187 @@ setMethod("mbrDpiFilter",
 setMethod("mbrAssociation",
           "MBR",
           function(object, regulatoryElements1=NULL, regulatoryElements2=NULL, 
-                   minRegulonSize=30, prob=0.95, 
-                   estimator='spearman', pAdjustMethod="BH", verbose=TRUE)
+                   minRegulonSize=30, prob=0.95, estimator='spearman', 
+                   pAdjustMethod="BH", verbose=TRUE)
           {
-            ##---gets
-              TNI1 <- mbrGet(object, what="TNI1")
-              tni1_gexp <- tni.get(TNI1, what="gexp")
-              tni1_para <- tni.get(TNI1, what="para")
-              TNI2 <- mbrGet(object, what="TNI2")
-            ##---checks
-              mbr.checks(name="minRegulonSize", para=minRegulonSize)
-              mbr.checks(name="prob", para=prob)
-              mbr.checks(name="estimator", para=estimator)
-              mbr.checks(name="pAdjustMethod", para=pAdjustMethod)
-              mbr.checks(name="verbose", para=verbose)
-              if(is.null(regulatoryElements1))
-                  {
-                  if(verbose) 
-                      cat("-Selecting regulatory elements from TNI1 object...\n")
-                  regulatoryElements1 <- tni.get(TNI1, "tfs")
-                  } else
-                      {
-                          regulatoryElements1 <- .checkRegel(TNI1, 
-                                                             regulatoryElements1)
-                          }
-              if(is.null(regulatoryElements2))
-                  {
-                  if(verbose) 
-                      cat("-Selecting regulatory elements from TNI2 object...\n")
-                  regulatoryElements2 <- tni.get(TNI2, "tfs")
-                  } else
-                      {
-                          regulatoryElements2 <- .checkRegel(TNI2,
-                                                             regulatoryElements2)
-                          }
-              mbr.checks(name="regulatoryElements", 
-                         para=c(regulatoryElements1, regulatoryElements2))
-              mbr.checks(name="numberRegElements", 
-                         para=c(regulatoryElements1, regulatoryElements2))
-              ##-----get regulons
-              what <- "refregulons.and.mode"
-              ##if (tnet=="dpi") what <- "regulons.and.mode"
-              regulons1 <- tni.get(TNI1, what=what)
-              regulons2 <- tni.get(TNI2, what=what)
-              
-              ##-----get regulatory elements
-              regulons1 <- regulons1[regulatoryElements1]
-              regulons2 <- regulons2[regulatoryElements2]
-              
-              ##-----get regulons by min size
-              size1 <- unlist(lapply(regulons1, length))
-              idx <- size1 >= (minRegulonSize)
-              regulons1 <- regulons1[idx]
-              regulatoryElements1 <- regulatoryElements1[idx]
-              size1 <- size1[idx]
-              
-              ##---
-              size2 <- unlist(lapply(regulons2, length))
-              idx <- size2 >= (minRegulonSize)
-              regulons2 <- regulons2[idx]
-              regulatoryElements2 <- regulatoryElements2[idx]
-              size2 <- size2[idx]
-              
-              ##-----group regulons and regulatory element
-              regulons <- c(regulons1, regulons2)
-              regel <- c(regulatoryElements1, regulatoryElements2)
-              
-              ##-----Correlation
-              tnet <- .regMatrix(regulons, regel, getNames=FALSE)
-              tbmi <- tnet
-              
-              ##-----
-              tnet <- .tni.cor(tni1_gexp, tnet, estimator=estimator, 
-                               dg=0, asInteger=FALSE, 
-                               mapAssignedAssociation=TRUE)
-              regcor <- cor(tnet[, regulatoryElements1], 
-                            tnet[, regulatoryElements2], method=estimator)
-              
-              ##-----
-              rownames(regcor) <- names(regulatoryElements1)
-              colnames(regcor) <- names(regulatoryElements2)
-              
-              ##-----select motifs based on 'prob' quantile
+            ##--- gets
+            TNI1 <- mbrGet(object, what="TNI1")
+            TNI2 <- mbrGet(object, what="TNI2")
+            tni_gexp <- tni.get(TNI1, what="gexp")
+            tni_para <- tni.get(TNI1, what="para")
+            ##--- checks
+            mbr.checks(name="minRegulonSize", para=minRegulonSize)
+            mbr.checks(name="prob", para=prob)
+            mbr.checks(name="estimator", para=estimator)
+            mbr.checks(name="pAdjustMethod", para=pAdjustMethod)
+            mbr.checks(name="verbose", para=verbose)
+            if(is.null(regulatoryElements1))
+            {
               if(verbose) 
-                  cat(paste("-Getting duals in probs >", prob, "...\n", 
-                            sep = ""))
-              pvlist <- .motifsquantile(regcor=regcor, th=prob)
-              
-              if(nrow(pvlist) > 0)
-                  {
-                  ##-----Mutual Information
-                  pvlist <- .getMIorP(pvlist, regel, tbmi, size1, size2)
-                  ##----PadjustValue
-                  if(!is.null(TNI1@results$adjpv))
-                      {
-                      tbpValue <- TNI1@results$adjpv
-                      cutoff <- tni1_para$perm$pValueCutoff
-                      pvlist <- .getMIorP(pvlist, regel, tbpValue, size1, size2, 
-                                          mutualInformation=FALSE, cutoff=cutoff)
-                      }
-                  
-                  ##-----Jaccard
-                  pvlist <- .jcOverlap(pvlist, regel, tbmi)
-                  
-                  ##-----Hypergeometric
-                  ##tni1 <- mbrGet(object, what="TNI1")
-                  universe <- rownames(tni1_gexp)
-                  hyperresults <- .mbr.hyper(pvlist=pvlist, regulons=regulons, 
-                                             regel=regel, universe=universe, 
-                                             pAdjustMethod=pAdjustMethod, 
-                                             verbose=verbose)
-                  pvlist$Hypergeometric.Adjusted.Pvalue <- hyperresults$Adjusted.Pvalue
-                  pvlist$Hypergeometric.Pvalue <- hyperresults$Pvalue
-                  }else
-                      {
-                          warning("No 'dual' has been found for the input parameters.")
-                          }
-              ##-----organize pvlist
-              if("MI.Adjusted.Pvalue"%in%colnames(pvlist))
-                  {
-                  pvlist <- pvlist[,c("Regulon1","Size.Regulon1","Regulon2",
-                                      "Size.Regulon2","Jaccard.coefficient", 
-                                      "Hypergeometric.Pvalue",
-                                      "Hypergeometric.Adjusted.Pvalue", 
-                                      "MI","MI.Adjusted.Pvalue","R","Quantile")]
-                  } else
-                      {
-                          pvlist <- pvlist[,c("Regulon1","Size.Regulon1","Regulon2",
-                                              "Size.Regulon2","Jaccard.coefficient", 
-                                              "Hypergeometric.Pvalue",
-                                              "Hypergeometric.Adjusted.Pvalue", 
-                                              "MI","R","Quantile")]
-                          }
-              
-              ##-----para
-              mbr_para <- mbrGet(object,what="para")
-              sum.info.par <- c(minRegulonSize, prob, estimator)
-              mbr_para$MBR$association['Parameter', ] <- sum.info.par
-              
-              ##---
-              mbr_summary <- mbrGet(object, what="summary")
-              info.summary.results <- nrow(pvlist)
-              mbr_summary$MBR$Duals['duals',] <- info.summary.results
-              ##-----set
-              object <- .mbr.set(name="statusUpdate", 
-                                 para="Association", object=object)
-              object <- .mbr.set(name="para", 
-                                 para=mbr_para, object=object)
-              object <- .mbr.set(name="summary", 
-                                 para=mbr_summary, object=object)
-              object <- .mbr.set(name="testedElementsTNI1", 
-                                 para=regulatoryElements1, object=object)
-              object <- .mbr.set(name="testedElementsTNI2", 
-                                 para=regulatoryElements2, object=object)
-              object <- .mbr.set(name="dualRegulons", 
-                                 para=rownames(pvlist), object=object)
-              object <- .mbr.set(name="motifsInformation", 
-                                 para=pvlist, object=object)
-              object <- .mbr.set(name="hypergeometricResults", 
-                                 para=hyperresults, object=object)    
-              return(object)
+                cat("-Selecting regulatory elements from TNI1 object...\n")
+              regulatoryElements1 <- tni.get(TNI1, "tfs")
+            } else
+            {
+              regulatoryElements1 <- .checkRegel(TNI1, regulatoryElements1)
+            }
+            if(is.null(regulatoryElements2))
+            {
+              if(verbose) 
+                cat("-Selecting regulatory elements from TNI2 object...\n")
+              regulatoryElements2 <- tni.get(TNI2, "tfs")
+            } else
+            {
+              regulatoryElements2 <- .checkRegel(TNI2, regulatoryElements2)
+            }
+            mbr.checks(name="numberRegElements", para=regulatoryElements1)
+            mbr.checks(name="numberRegElements", para=regulatoryElements2)
+            
+            ##--- get regulons
+            what <- "refregulons.and.mode"
+            regulons1 <- tni.get(TNI1, what=what)
+            regulons2 <- tni.get(TNI2, what=what)
+            
+            ##--- get regulatory elements
+            regulons1 <- regulons1[regulatoryElements1]
+            regulons2 <- regulons2[regulatoryElements2]
+            
+            ##--- get regulons by min size
+            size1 <- unlist(lapply(regulons1, length))
+            size2 <- unlist(lapply(regulons2, length))
+            ##---
+            if( sum(size1)==0 | sum(size2)==0){
+              stop("NOTE: at least one input regulon should be above the 
+                   'minRegulonSize' in both TNIs!",call.=FALSE)
+            }
+            ##---
+            idx <- size1 >= (minRegulonSize)
+            regulons1 <- regulons1[idx]
+            regulatoryElements1 <- regulatoryElements1[idx]
+            size1 <- size1[idx]
+            ##---
+            idx <- size2 >= (minRegulonSize)
+            regulons2 <- regulons2[idx]
+            regulatoryElements2 <- regulatoryElements2[idx]
+            size2 <- size2[idx]
+            
+            ##--- group regulons and regulatory elements
+            regel <- unique(c(regulatoryElements1, regulatoryElements2))
+            targets <- unique(unlist(lapply(c(regulons1, regulons2), names)))
+            targets <- unique(c(regel, targets))
+            
+            ##--- get mi
+            if(verbose) 
+              cat("-Extrating inferred regulatory associations...\n")
+            tbmi1 <- .regMatrix(regulons1, regulatoryElements1, targets, getNames=FALSE)
+            tbmi2 <- .regMatrix(regulons2, regulatoryElements2, targets, getNames=FALSE)
+            
+            ##--- compute correlation between regulators and targets
+            if(verbose) 
+              cat("-Computing correlation statistics between regulators and targets...\n")
+            tnet1 <- .tni.cor(tni_gexp, tbmi1, estimator=estimator, dg=0, 
+                              asInteger=FALSE, mapAssignedAssociation=TRUE)
+            tnet2 <- .tni.cor(tni_gexp, tbmi2, estimator=estimator, dg=0, 
+                              asInteger=FALSE, mapAssignedAssociation=TRUE)
+            
+            ##--- compute correlation between regulons
+            if(verbose) 
+              cat("-Computing correlation statistics between regulon pairs...\n")
+            regcor <- cor(tnet1, tnet2, method=estimator)
+            intregs <- intersect(regulatoryElements1,regulatoryElements2)
+            diag(regcor[intregs,intregs]) <- NA
+            regcor[intregs,intregs][upper.tri(regcor[intregs,intregs])] <- NA
+            rownames(regcor) <- names(regulatoryElements1)
+            colnames(regcor) <- names(regulatoryElements2)
+            
+            ##--- 
+            testedDuals <- sum(!is.na(regcor))
+            if(testedDuals < 100){
+              tp1 <- paste("NOTE: only",testedDuals,"regulon pair(s) is(are) being tested!\n")
+              tp2 <- "Ideally, the search space should represent all possible\n"
+              tp3 <- "combinations of a given class of regulators! For example,\n"
+              tp4 <- "all nuclear receptors annotated for a given species."
+              warning(tp1,tp2,tp3,tp4, call.=FALSE)
+            }
+            ##--- select motifs based on 'prob' quantile
+            if(verbose) cat("-Computing quantile statistics...\n")
+            statlist <- .motifsquantile(regcor=regcor, prob=prob)
+            inferredDuals <- nrow(statlist)
+            
+            if(inferredDuals > 0){
+              ##--- Mutual Information
+              if(verbose)cat("-Computing Mutual Information...\n")
+              statlist <- .getMI(statlist, tbmi1, regulatoryElements1, 
+                                 regulatoryElements2, size1, size2)
+              ##--- PadjustValue
+              if(!is.null(TNI1@results$adjpv)) {
+                pvmat <- TNI1@results$adjpv
+                cutoff <- tni_para$perm$pValueCutoff
+                statlist <- .getPMI(statlist, pvmat, regulatoryElements1, 
+                                    regulatoryElements2, cutoff=cutoff)
               }
-          )
+              ##--- Jaccard
+              if(verbose)cat("-Computing Jaccard similarity...\n")
+              statlist <- .jcOverlap(statlist, regulatoryElements1, 
+                                     regulatoryElements2, 
+                                     tnet1, tnet2)
+              ##--- Hypergeometric
+              if(verbose)cat("-Running hypergeometric analysis...\n")
+              universe <- rownames(tni_gexp)
+              hyperresults <- .mbr.hyper(.statlist=statlist, 
+                                         regulons1=regulons1, regulons2=regulons2, 
+                                         regulatoryElements1, regulatoryElements2,
+                                         universe=universe, pAdjustMethod=pAdjustMethod, 
+                                         verbose=verbose)
+              statlist$Hypergeometric.Pvalue <- hyperresults$Pvalue
+              statlist$Hypergeometric.Adjusted.Pvalue <- hyperresults$Adjusted.Pvalue
+            } else {
+              warning("No 'dual regulon' has been observed for the input parameters.",
+                      call.=FALSE)
+            }
+            ##--- organize statlist
+            if("MI.Adjusted.Pvalue"%in%colnames(statlist)){
+              statlist <- statlist[,c("Regulon1","Size.Regulon1","Regulon2",
+                                  "Size.Regulon2","Jaccard.coefficient", 
+                                  "Hypergeometric.Pvalue",
+                                  "Hypergeometric.Adjusted.Pvalue", 
+                                  "MI","MI.Adjusted.Pvalue","R","Quantile")]
+            } else {
+              statlist <- statlist[,c("Regulon1","Size.Regulon1","Regulon2",
+                                  "Size.Regulon2","Jaccard.coefficient", 
+                                  "Hypergeometric.Pvalue",
+                                  "Hypergeometric.Adjusted.Pvalue", 
+                                  "MI","R","Quantile")]
+            }
+            
+            ##--- para
+            mbr_para <- mbrGet(object,what="para")
+            sum.info.par <- c(minRegulonSize, prob, estimator)
+            mbr_para$MBR$association['Parameter', ] <- sum.info.par
+            
+            ##---
+            mbr_summary <- mbrGet(object, what="summary")
+            mbr_summary$MBR$Duals[,'testedDuals'] <- testedDuals
+            mbr_summary$MBR$Duals[,'inferredDuals'] <- inferredDuals
+            ##--- set
+            object <- .mbr.set(name="statusUpdate", 
+                               para="Association", object=object)
+            object <- .mbr.set(name="para", 
+                               para=mbr_para, object=object)
+            object <- .mbr.set(name="summary", 
+                               para=mbr_summary, object=object)
+            object <- .mbr.set(name="testedElementsTNI1", 
+                               para=regulatoryElements1, object=object)
+            object <- .mbr.set(name="testedElementsTNI2", 
+                               para=regulatoryElements2, object=object)
+            object <- .mbr.set(name="dualRegulons", 
+                               para=rownames(statlist), object=object)
+            object <- .mbr.set(name="dualsInformation", 
+                               para=statlist, object=object)
+            object <- .mbr.set(name="hypergeometricResults", 
+                               para=hyperresults, object=object)    
+            return(object)
+            }
+)
 
 
 #' A summary for results from the MBR methods.
@@ -633,36 +640,40 @@ setMethod("mbrAssociation",
 #' the 'supplementary.table'.
 #' @param verbose A single logical value specifying to display detailed 
 #' messages (when verbose=TRUE) or not (when verbose=FALSE).
-#' @return An \linkS4class{MBR} object with a data.frame in the slot 'results' 
-#' listing the input additional evidences.
+#' @return An \linkS4class{MBR} object with an updated 'data.frame' in the slot 
+#' 'results' listing the input additional evidences.
 #' @examples
+#' ##--- load a dataset for demonstration
 #' data("dt4rtn", package = "RTN")
 #' gexp <- dt4rtn$gexp
 #' annot <- dt4rtn$gexpIDs
 #' tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 #' tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-#' ##---mbrPreprocess
+#' 
+#' ##--- run mbrAssociation
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
 #' regulatoryElements2=tfs2, gexpIDs=annot)
-#' ##---mbrPermutation
 #' rmbr <- mbrPermutation(rmbr, nPermutations=10)
-#' ##---mbrBootstrap
 #' rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
-#' ##---mbrDpiFilter
-#' rmbr <- mbrDpiFilter(rmbr)
-#' ##---mbrAssociation
 #' rmbr <- mbrAssociation(rmbr, prob=0.75)
-#' ##---a 'toy' table with supplementary evidences
-#' motifsInformation <- mbrGet(rmbr, what="motifsInformation")
-#' n <- nrow(motifsInformation)
-#' supplementaryTable <- motifsInformation[1:n,c("Regulon1","Regulon2")]
-#' supplementaryTable$ToyEvidence <- rnorm(n)
-#' ##---mbrDuals
-#' rmbr <- mbrDuals(rmbr, supplementary.table = supplementaryTable, 
+#' rmbr <- mbrDuals(rmbr)
+#' 
+#' ##--- check results
+#' results <- mbrGet(rmbr, what="dualsInformation")
+#' 
+#' ##--- add supplementary evidences
+#' ## here we build a 'toy' example using the 'rnorm' function for 
+#' ## demonstration purposes only!
+#' supplementaryTable <- results[,c("Regulon1","Regulon2")]
+#' supplementaryTable$ToyEvidence <- rnorm(nrow(results))
+#' supplementaryTable
+#' 
+#' ##--- add supplementary evidences with brDuals function
+#' rmbr <- mbrDuals(rmbr, supplementary.table=supplementaryTable,
 #' evidenceColname = "ToyEvidence")
-#' ##---motifsInformation with 'Evidence'
-#' motifsInformation <- mbrGet(rmbr, what="motifsInformation")
-#' head(motifsInformation)
+#' 
+#' ##--- check updated results
+#' mbrGet(rmbr, what="dualsInformation")
 #'
 #' @importFrom utils setTxtProgressBar txtProgressBar
 #' @import methods
@@ -678,44 +689,44 @@ setMethod( "mbrDuals",
            function(object, supplementary.table=NULL, evidenceColname, 
                     verbose=TRUE)
            {
-            ##---checks
-            mbr.checks(name="object", para=object)
-            ##---
-            motifsInformation <- mbrGet(object, what="motifsInformation")
-            if(is.null(dim(motifsInformation)))
-             stop("'motifsInformation' seems null!")
-            if(verbose) cat("-Sorting by the R value...\n")
-            idx <- sort(abs(motifsInformation[,"R"]), decreasing=TRUE, 
-                        index.return=TRUE)
-            motifsInformation <- motifsInformation[idx$ix, ]
-            
-            #---set
-            object <- .mbr.set(name="motifsInformation", 
-                               para=motifsInformation, object=object)
-            object <- .mbr.set(name="dualRegulons", 
-                               para=rownames(motifsInformation), object=object)
-            if(!is.null(supplementary.table))
-            {
              ##---checks
-             if(missing(evidenceColname)) 
-              stop("'evidenceColname' should be a character value present in 
-                   colnames of supplementary.table!")
-             mbr.checks(name="supplementary.table", para=supplementary.table)
-             mbr.checks(name="uniqueInput", para=supplementary.table)
-             mbr.checks(name="evidenceColname", para=evidenceColname)
+             mbr.checks(name="object", para=object)
+             ##---
+             dualsInformation <- mbrGet(object, what="dualsInformation")
+             if(is.null(dim(dualsInformation)))
+               stop("empty results in the input 'object'!",call.=FALSE)
+             if(verbose) cat("-Sorting by the R value...\n")
+             idx <- sort(abs(dualsInformation[,"R"]), decreasing=TRUE, 
+                         index.return=TRUE)
+             dualsInformation <- dualsInformation[idx$ix, ]
              
-             ##---consistency
-             if(verbose) 
-              cat("-Checking the 'supplementary.table' consistency...\n")
-             supplementary.table <- .consisSuppTable(object, 
-                                                     supplementary.table, 
-                                                     evidenceColname, 
-                                                     verbose=verbose)
-             ##---find duals
-             object <- .checkLoops(object, supplementary.table, 
-                                   evidenceColname, verbose=verbose)
-            }
-            return(object)
+             #---set
+             object <- .mbr.set(name="dualsInformation", 
+                                para=dualsInformation, object=object)
+             object <- .mbr.set(name="dualRegulons", 
+                                para=rownames(dualsInformation), object=object)
+             if(!is.null(supplementary.table))
+             {
+               ##---checks
+               if(missing(evidenceColname)) 
+                 stop("'evidenceColname' should be a character value present in 
+                      colnames of supplementary.table!",call.=FALSE)
+               mbr.checks(name="supplementary.table", para=supplementary.table)
+               mbr.checks(name="uniqueInput", para=supplementary.table)
+               mbr.checks(name="evidenceColname", para=evidenceColname)
+               
+               ##---consistency
+               if(verbose) 
+                 cat("-Checking the 'supplementary.table' consistency...\n")
+               supplementary.table <- .consisSuppTable(object, 
+                                                       supplementary.table, 
+                                                       evidenceColname, 
+                                                       verbose=verbose)
+               ##---find duals
+               object <- .checkLoops(object, supplementary.table, 
+                                     evidenceColname, verbose=verbose)
+             }
+             return(object)
            }
 )
 
@@ -728,29 +739,35 @@ setMethod( "mbrDuals",
 #' @param verbose A single logical value specifying to display detailed messages 
 #' (when verbose=TRUE) or not (when verbose=FALSE).
 #' @param regulatoryElements1 A character vector specifying which 
-#' 'TNI1' regulatory elements should be evaluated. It is obligatory when the 'TNI2' is missing. 
+#' 'TNI1' regulatory elements should be evaluated.
 #' @param regulatoryElements2 A character vector specifying which 
-#' 'TNI1' regulatory elements should be evaluated. It is obligatory when the 'TNI2' is missing and can not
-#' be equal fo the 'regulatoryElements1' vector.
+#' 'TNI2' regulatory elements should be evaluated.
 #' @return An \linkS4class{MBR} object.
 #' @examples
+#' #--- load a dataset for demonstration
 #' data("dt4rtn", package = "RTN")
 #' gexp <- dt4rtn$gexp
 #' annot <- dt4rtn$gexpIDs
 #' tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 #' tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-#' ##---mbrPreprocess
-#' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
-#' regulatoryElements2=tfs2, gexpIDs=annot)
-#' ##---mbrPermutation
-#' rmbr <- mbrPermutation(rmbr, nPermutations=10)
-#' ##---mbrBootstrap
-#' rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
-#' rmbr <- mbrDpiFilter(rmbr)
-#' ##---tni2mbrPreprocess
-#' tni1 <- mbrGet(rmbr, what="TNI1")
-#' tni2 <- mbrGet(rmbr, what="TNI2")
+#' 
+#' \dontrun{
+#' 
+#' ##--- compute a TNI for tfs1
+#' tni1 <- new("TNI", gexp=gexp, transcriptionFactors=tfs1)
+#' tni1 <- tni.preprocess(tni1, gexpIDs=annot)
+#' tni1 <-tni.permutation(tni1)
+#' tni1 <-tni.bootstrap(tni1)
+#' 
+#' ##--- compute a TNI for tfs2
+#' tni2 <- new("TNI", gexp=gexp, transcriptionFactors=tfs2)
+#' tni2 <- tni.preprocess(tni2, gexpIDs=annot)
+#' tni2 <-tni.permutation(tni2)
+#' tni2 <-tni.bootstrap(tni2)
+#' 
+#' ##--- run tni2mbrPreprocess
 #' rmbr <- tni2mbrPreprocess(tni1, tni2)
+#' }
 #'
 #' @import methods
 #' @docType methods
@@ -766,66 +783,66 @@ setMethod("tni2mbrPreprocess",
                     regulatoryElements1=NULL, regulatoryElements2=NULL, 
                     verbose=TRUE)
           {
-           if(missing(TNI1)) stop("NOTE: 'tni1' is missing ", call.=FALSE)
-           if(missing(TNI2)){
-               TNI2 <- TNI1 ##stop("NOTE: 'TNI2' is missing ", call.=FALSE)
-               mbr.checks(name="regulatoryElements1", para=regulatoryElements1)
-               mbr.checks(name="regulatoryElements2", para=regulatoryElements2)
-               ##----
-               regulatoryElements1 <- .checkRegel(TNI1, regulatoryElements1)
-               regulatoryElements2 <- .checkRegel(TNI2, regulatoryElements2)
-               ##----remove duplicated Regulatory Elements
-               TNI1@transcriptionFactors <- regulatoryElements1
-               TNI2@transcriptionFactors <- regulatoryElements2
-           }
-              
-           mbr.checks (name='tni', para=TNI1)
-           mbr.checks (name='tni', para=TNI2)
-           .combineTNIs (tni1=TNI1, tni2=TNI2, verbose=verbose)
-           #---get
-           gexp <- tni.get(TNI1, what="gexp")
-           regulatoryElements1 <- tni.get(TNI1, what="tfs")
-           regulatoryElements2 <- tni.get(TNI2, what="tfs")
-           ##---- creates MBR object
-           object <- .MBRmaker(class="MBR", gexp=gexp,
-                               regulatoryElements1=regulatoryElements1,
-                               regulatoryElements2=regulatoryElements2)
-           #---TNIs Update
-           object <- .mbr.set(name="TNI1", para=TNI1, object=object)
-           object <- .mbr.set(name="TNI2", para=TNI2, object=object)
-           #---statu update
-           TNI_status <- tni.get(TNI1, what="status")
-           status <- names(TNI_status[TNI_status=="[x]"])
-           object <- .mbr.set(name="statusUpdate", para=status, object=object)
-           #---get Updates
-           TNI1_summary <- tni.get(TNI1, what="summary")
-           TNI2_summary <- tni.get(TNI2, what="summary")
-           mbr_summary <- mbrGet(object, what="summary")
-           mbr_para <- mbrGet(object, what="para")
-
-           ##---permutation
-
-           mbr_para$TNIs$perm <- TNI1_summary$para$perm
-           mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
-           colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
-           mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
-           colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
-           ##---bootstrap
-           mbr_para$TNIs$boot <- TNI1_summary$para$boot
-           mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
-           colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
-           mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
-           colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
-           ##---summary dpi.filter
-           mbr_para$TNIs$dpi <- TNI1_summary$para$dpi
-           mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
-           colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
-           mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
-           colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
-           #---set
-           object <- .mbr.set(name="para", para=mbr_para, object=object)
-           object <- .mbr.set(name="summary", para=mbr_summary, object=object)
-           return (object)
+            if(missing(TNI1)) stop("NOTE: 'tni1' is missing ", call.=FALSE)
+            if(missing(TNI2)){
+              TNI2 <- TNI1 ##stop("NOTE: 'TNI2' is missing ", call.=FALSE)
+              mbr.checks(name="regulatoryElements1", para=regulatoryElements1)
+              mbr.checks(name="regulatoryElements2", para=regulatoryElements2)
+              ##----
+              regulatoryElements1 <- .checkRegel(TNI1, regulatoryElements1)
+              regulatoryElements2 <- .checkRegel(TNI2, regulatoryElements2)
+              ##----remove duplicated Regulatory Elements
+              TNI1@transcriptionFactors <- regulatoryElements1
+              TNI2@transcriptionFactors <- regulatoryElements2
+            }
+            
+            mbr.checks (name='tni', para=TNI1)
+            mbr.checks (name='tni', para=TNI2)
+            .combineTNIs (tni1=TNI1, tni2=TNI2, verbose=verbose)
+            #---get
+            gexp <- tni.get(TNI1, what="gexp")
+            regulatoryElements1 <- tni.get(TNI1, what="tfs")
+            regulatoryElements2 <- tni.get(TNI2, what="tfs")
+            ##---- creates MBR object
+            object <- .MBRmaker(gexp=gexp,
+                                regulatoryElements1=regulatoryElements1,
+                                regulatoryElements2=regulatoryElements2)
+            #---TNIs Update
+            object <- .mbr.set(name="TNI1", para=TNI1, object=object)
+            object <- .mbr.set(name="TNI2", para=TNI2, object=object)
+            #---statu update
+            TNI_status <- tni.get(TNI1, what="status")
+            status <- names(TNI_status[TNI_status=="[x]"])
+            object <- .mbr.set(name="statusUpdate", para=status, object=object)
+            #---get Updates
+            TNI1_summary <- tni.get(TNI1, what="summary")
+            TNI2_summary <- tni.get(TNI2, what="summary")
+            mbr_summary <- mbrGet(object, what="summary")
+            mbr_para <- mbrGet(object, what="para")
+            
+            ##---permutation
+            
+            mbr_para$TNIs$perm <- TNI1_summary$para$perm
+            mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
+            mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
+            ##---bootstrap
+            mbr_para$TNIs$boot <- TNI1_summary$para$boot
+            mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
+            mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
+            ##---summary dpi.filter
+            mbr_para$TNIs$dpi <- TNI1_summary$para$dpi
+            mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
+            mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
+            #---set
+            object <- .mbr.set(name="para", para=mbr_para, object=object)
+            object <- .mbr.set(name="summary", para=mbr_summary, object=object)
+            return (object)
           }
 )
 
@@ -835,9 +852,9 @@ setMethod( "show",
            "MBR",
            function(object)
            {
-            cat("an MBR (Motifs Between Regulons) object:\n")
-            message("--status:")
-            print(object@status, quote=FALSE)
+             cat("an MBR (Motifs Between Regulons) object:\n")
+             message("--status:")
+             print(object@status, quote=FALSE)
            }
 )
 
@@ -850,18 +867,21 @@ setMethod( "show",
 #' @param what a single character value specifying which information should be 
 #' retrieved from the slots. Options: "TNI1", "TNI2", "testedElementsTNI1", 
 #' "testedElementsTNI2", "dualRegulons", "results", "para", "summary", 
-#' "status", "motifsInformation" and "hyperResults"
+#' "status", "dualsInformation" and "hyperResults"
 #' @return A slot content from a object of class 'MBR' \linkS4class{MBR} object
 #' @examples
+#' ##--- load a dataset for demonstration
 #' data("dt4rtn", package = "RTN")
 #' gexp <- dt4rtn$gexp
 #' annot <- dt4rtn$gexpIDs
 #' tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 #' tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-#' ##---mbrPreprocess
+#' 
+#' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
 #' regulatoryElements2=tfs2, gexpIDs=annot)
-#' ##---get the 'TNI1' slot using 'mbrGet'
+#' 
+#' ##--- get the 'TNI1' slot using 'mbrGet'
 #' tni1 <- mbrGet(rmbr, what="TNI1")
 #' 
 #' @import methods
@@ -875,68 +895,68 @@ setMethod( "mbrGet",
            "MBR", 
            function(object, what="status")
            {
-            ##---check input arguments
-            mbr.checks(name="object", para=object)
-            mbr.checks(name="mbrGet", para=what)
-            ##---Association options any change needs update!
-            optsAssoci <- c("testedElementsTNI1", "testedElementsTNI2", 
-                            "dualRegulons", "motifsInformation", "results", 
-                            "hyperResults")
-            ##---get query
-            if(what=="TNI1")
-            {
-             query <- object@TNI1
-            }
-            else if(what=="TNI2")
-            {
-             query <- object@TNI2
-            }
-            else if(what=="para")
-            {
-             query <- object@para
-            }
-            else if(what=="summary")
-            {
-             query <- object@summary
-            }
-            else if(what=="status")
-            {
-             query <- object@status
-            }
-            else if(what%in%optsAssoci)
-            {
-             if(object@status["Association"] != "[x]")
+             ##---check input arguments
+             mbr.checks(name="object", para=object)
+             mbr.checks(name="mbrGet", para=what)
+             ##---Association options any change needs update!
+             optsAssoci <- c("testedElementsTNI1", "testedElementsTNI2", 
+                             "dualRegulons", "dualsInformation", "results", 
+                             "hyperResults")
+             ##---get query
+             if(what=="TNI1")
              {
-              warning("NOTE: input 'object' needs 'mbrAssociation' 
-                      evaluation!")
-              query <- NULL
-             } else {
-              if(what=="testedElementsTNI1")
-              {
-               query <- object@testedElementsTNI1
-              }
-              else if(what=="testedElementsTNI2")
-              {
-               query <- object@testedElementsTNI2
-              }
-              else if(what=="dualRegulons")
-              {
-               query <- object@dualRegulons
-              }
-              else if(what=="results")
-              {
-               query <- object@results
-              }
-              else if(what=="motifsInformation")
-              {
-               query <- object@results$motifsInformation
-              }
-              else if(what=="hyperResults")
-              {
-               query <- object@results$hypergeometricResults
-              }
+               query <- object@TNI1
              }
-            }
-            return(query)
+             else if(what=="TNI2")
+             {
+               query <- object@TNI2
+             }
+             else if(what=="para")
+             {
+               query <- object@para
+             }
+             else if(what=="summary")
+             {
+               query <- object@summary
+             }
+             else if(what=="status")
+             {
+               query <- object@status
+             }
+             else if(what%in%optsAssoci)
+             {
+               if(object@status["Association"] != "[x]")
+               {
+                 warning("NOTE: input 'object' needs 'mbrAssociation' evaluation!",
+                         call.=FALSE)
+                 query <- NULL
+               } else {
+                 if(what=="testedElementsTNI1")
+                 {
+                   query <- object@testedElementsTNI1
+                 }
+                 else if(what=="testedElementsTNI2")
+                 {
+                   query <- object@testedElementsTNI2
+                 }
+                 else if(what=="dualRegulons")
+                 {
+                   query <- object@dualRegulons
+                 }
+                 else if(what=="results")
+                 {
+                   query <- object@results
+                 }
+                 else if(what=="dualsInformation")
+                 {
+                   query <- object@results$dualsInformation
+                 }
+                 else if(what=="hyperResults")
+                 {
+                   query <- object@results$hypergeometricResults
+                 }
+               }
+             }
+             return(query)
            }
 )
