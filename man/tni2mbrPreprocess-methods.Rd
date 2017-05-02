@@ -2,8 +2,8 @@
 % Please edit documentation in R/MBR-methods.R
 \docType{methods}
 \name{tni2mbrPreprocess,TNI-method}
-\alias{tni2mbrPreprocess}
 \alias{tni2mbrPreprocess,TNI-method}
+\alias{tni2mbrPreprocess}
 \title{A preprocessing function for objects of class MBR.}
 \usage{
 \S4method{tni2mbrPreprocess}{TNI}(TNI1, TNI2, regulatoryElements1 = NULL,
@@ -15,11 +15,10 @@
 \item{TNI2}{Another 'TNI' class object}
 
 \item{regulatoryElements1}{A character vector specifying which 
-'TNI1' regulatory elements should be evaluated. It is obligatory when the 'TNI2' is missing.}
+'TNI1' regulatory elements should be evaluated.}
 
 \item{regulatoryElements2}{A character vector specifying which 
-'TNI1' regulatory elements should be evaluated. It is obligatory when the 'TNI2' is missing and can not
-be equal fo the 'regulatoryElements1' vector.}
+'TNI2' regulatory elements should be evaluated.}
 
 \item{verbose}{A single logical value specifying to display detailed messages 
 (when verbose=TRUE) or not (when verbose=FALSE).}
@@ -31,23 +30,29 @@ An \linkS4class{MBR} object.
 This function merges two TNI class objects and creates one MBR class object.
 }
 \examples{
+#--- load a dataset for demonstration
 data("dt4rtn", package = "RTN")
 gexp <- dt4rtn$gexp
 annot <- dt4rtn$gexpIDs
 tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-##---mbrPreprocess
-rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
-regulatoryElements2=tfs2, gexpIDs=annot)
-##---mbrPermutation
-rmbr <- mbrPermutation(rmbr, nPermutations=10)
-##---mbrBootstrap
-rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
-rmbr <- mbrDpiFilter(rmbr)
-##---tni2mbrPreprocess
-tni1 <- mbrGet(rmbr, what="TNI1")
-tni2 <- mbrGet(rmbr, what="TNI2")
-rmbr <- tni2mbrPreprocess(tni1, tni2)
 
+\dontrun{
+
+##--- compute a TNI for tfs1
+tni1 <- new("TNI", gexp=gexp, transcriptionFactors=tfs1)
+tni1 <- tni.preprocess(tni1, gexpIDs=annot)
+tni1 <-tni.permutation(tni1)
+tni1 <-tni.bootstrap(tni1)
+
+##--- compute a TNI for tfs2
+tni2 <- new("TNI", gexp=gexp, transcriptionFactors=tfs2)
+tni2 <- tni.preprocess(tni2, gexpIDs=annot)
+tni2 <-tni.permutation(tni2)
+tni2 <-tni.bootstrap(tni2)
+
+##--- run tni2mbrPreprocess
+rmbr <- tni2mbrPreprocess(tni1, tni2)
 }
 
+}

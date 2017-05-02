@@ -2,8 +2,8 @@
 % Please edit documentation in R/MBR-methods.R
 \docType{methods}
 \name{mbrDpiFilter,MBR-method}
-\alias{mbrDpiFilter}
 \alias{mbrDpiFilter,MBR-method}
+\alias{mbrDpiFilter}
 \title{A filter based on the Data Processing Inequality (DPI) algorithm.}
 \usage{
 \S4method{mbrDpiFilter}{MBR}(object, verbose = TRUE, ...)
@@ -29,20 +29,24 @@ This function takes an MBR object and computes two transcriptional networks
 filtered by the data processing inequality algorithm.
 }
 \examples{
+##--- load a dataset for demonstration
 data("dt4rtn", package = "RTN")
 gexp <- dt4rtn$gexp
 annot <- dt4rtn$gexpIDs
 tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-##---mbrPreprocess
+
+##--- run mbrPreprocess
 rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
 regulatoryElements2=tfs2, gexpIDs=annot)
-##---mbrPermutation
+
+##--- run mbrPermutation
 rmbr <- mbrPermutation(rmbr, nPermutations=10)
-##---mbrBootstrap
+
+##--- run mbrBootstrap
 rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
-##---mbrDpiFilter
+
+##--- run mbrDpiFilter
 rmbr <- mbrDpiFilter(rmbr)
 
 }
-

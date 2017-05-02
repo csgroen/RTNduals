@@ -10,7 +10,7 @@
 #' @param object A processed object of class \linkS4class{MBR} evaluated by 
 #' the method \code{\link[RTNduals:mbrAssociation]{mbrAssociation}}.
 #' @param names.duals A vector with 'dual regulon' indentifiers from the 
-#' 'motifsInformation' table.
+#' 'dualsInformation' table.
 #' @param filepath A character string indicating the file path where the plot 
 #' should be saved.
 #' @param alpha  The alpha transparency, a number in [0,1].
@@ -20,27 +20,32 @@
 #' @param Pvalue A Boolean value that indicates whether the 'dual regulon' p-value will be showed in the plot.
 #' @return A plot with the shared target clouds between dual regulons.
 #' @examples
+#' ##--- load a dataset for demonstration
 #' data("dt4rtn", package = "RTN")
 #' gexp <- dt4rtn$gexp
 #' annot <- dt4rtn$gexpIDs
 #' tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 #' tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-#' ##---mbrPreprocess
+#' 
+#' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
 #' regulatoryElements2=tfs2, gexpIDs=annot)
-#' ##---mbrPermutation
+#' 
+#' ##--- run mbrPermutation
 #' rmbr <- mbrPermutation(rmbr, nPermutations=10)
-#' ##---mbrBootstrap
+#' 
+#' ##--- run mbrBootstrap
 #' rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
-#' ##---mbrDpiFilter
-#' rmbr <- mbrDpiFilter(rmbr)
-#' ##---mbrAssociation
+#' 
+#' ##--- run mbrAssociation
 #' rmbr <- mbrAssociation(rmbr, prob=0.75)
-#' ##---mbrDuals
+#' 
+#' ##--- run mbrDuals
 #' rmbr <- mbrDuals(rmbr)
-#' ##---
-#' dual <- mbrGet(rmbr, what="dualRegulons")[1]
-#' mbrPlotDuals(rmbr, names.duals=dual)
+#' 
+#' ##--- get inferred duals and plot the shared cloud of targets
+#' duals <- mbrGet(rmbr, what="dualRegulons")
+#' mbrPlotDuals(rmbr, names.duals=duals[1])
 #'
 #' @import graphics
 #' @importFrom grDevices adjustcolor dev.off pdf colorRampPalette
@@ -50,8 +55,8 @@
 
 ##------------------------------------------------------------------------------
 mbrPlotDuals <- function(object, names.duals = NULL, filepath=NULL, 
-                           alpha=0.80,lncols=c("darkgreen","darkorange3"), 
-                           lwd=0.70, Pvalue = FALSE)
+                         alpha=0.80,lncols=c("darkgreen","darkorange3"), 
+                         lwd=0.70, Pvalue = FALSE)
 {
   ##----check object class
   mbr.checks(name="object", para=object)
@@ -60,7 +65,7 @@ mbrPlotDuals <- function(object, names.duals = NULL, filepath=NULL,
   rtni <- .merge.tnis(object)
   rtni_para <- tni.get(rtni, what="para")
   estimator <- rtni_para$perm$estimator
-  motifstb <- mbrGet(object, what="motifsInformation")
+  motifstb <- mbrGet(object, what="dualsInformation")
   motifstb <- .namesDual.check(motifstb, names.duals)
   
   res <- apply(motifstb, 1, function (mtfs)
@@ -220,16 +225,14 @@ mbrPlotDuals <- function(object, names.duals = NULL, filepath=NULL,
   {
     ##----checks names.duals
     if(sum(names.duals%in%rownames(motifstb)) == 0) 
-      stop("-NOTE: 'names.duals' should be in 
-           '@results$motifsInformation!' \n")
+      stop("NOTE: 'names.duals' should be in 'dualsInformation!' 
+           see 'mbrGet' function. \n", call.=FALSE)
     if(sum(names.duals%in%rownames(motifstb)) != 
        length(names.duals)) 
-      stop ("Not all motifs names are available! \n")
+      stop ("NOTE: Not all names are available for dual regulons! \n", call.=FALSE)
     ##----
-    motifstb <- motifstb[names.duals, 
-                         c("Regulon1","Regulon2", "R", "Hypergeometric.Adjusted.Pvalue")]
-  } else
-  {
+    motifstb <- motifstb[names.duals, c("Regulon1","Regulon2", "R", "Hypergeometric.Adjusted.Pvalue")]
+  } else {
     motifstb <- motifstb[, c("Regulon1", "Regulon2", "R", "Hypergeometric.Adjusted.Pvalue")]
   }
   motifstb[, 3] <- round(motifstb[, 3], 2)

@@ -15,8 +15,8 @@
   idx <- which(tni@annotation[, colid]%in%regulatoryElements)
   if(length(idx) < length(regulatoryElements))
   {
-    warning("Not all 'regulatory elements' are available in the 'TNI' 
-            annotation!" )
+    warning("Not all 'regulatory elements' are available in the 'TNI' annotation!",
+            call.=FALSE)
   }
   regulatoryElements <- tni@annotation[idx,]
   idx <- match(rownames(regulatoryElements), tni@transcriptionFactors)
@@ -27,10 +27,8 @@
 ##------------------------------------------------------------------------------
 #internal function for 'mbrAssociation'
 ##creates a matrix of regulons (tnet) for analysis (can be numeric or factors)
-.regMatrix <- function(regulons, regel, getNames = TRUE, factors = FALSE)
+.regMatrix <- function(regulons, regel, targets, getNames = TRUE, factors = FALSE)
 {
-  targets <- unique(unlist(lapply(regulons, names)))
-  targets <- unique(c(regel, targets))
   xmat <- matrix(0, nrow=length(targets), ncol=length(regel))
   rownames(xmat) <- targets
   colnames(xmat) <- regel
@@ -48,72 +46,78 @@
 ##------------------------------------------------------------------------------
 #internal function for 'mbrAssociation'
 ##gets significant associations inferred for motifs using the 'prob' parameter
-.motifsquantile <- function(regcor, th=0.99)
+.motifsquantile <- function(regcor, prob)
 {
-  th <- th*100
-  cormat <- .cutoffquantile(regcor)
-  pmat <- cormat>th
-  coord <- which(pmat,arr.ind=TRUE)
-  rnames <- rownames(pmat)[coord[, 1]]
-  cnames <- colnames(pmat)[coord[, 2]]
+  if(length(regcor)>1){
+    qtmat <- .getquantiles(regcor)
+  } else {
+    qtmat <- regcor
+    qtmat[] <- 1
+  }
+  lmat <- array(TRUE,dim=dim(qtmat), dimnames = dimnames(qtmat))
+  coord <- which(lmat,arr.ind=TRUE)
+  rnames <- rownames(lmat)[coord[, 1]]
+  cnames <- colnames(lmat)[coord[, 2]]
   corvalues <- regcor[coord]
-  qvalues <- cormat[coord]
-  qvalues <- data.frame(Regulon1=rnames,Regulon2=cnames,R=corvalues, 
-                        Quantile = qvalues, stringsAsFactors=FALSE)
-  rownames(qvalues) <- paste(qvalues$Regulon1, qvalues$Regulon2, sep="~")
-  return(qvalues)
+  qdat <- qtmat[coord]
+  idx <- !is.na(corvalues)
+  qdat <- data.frame(Regulon1=rnames[idx],Regulon2=cnames[idx],
+                     R=corvalues[idx], Quantile=qdat[idx], 
+                     stringsAsFactors=FALSE)
+  rownames(qdat) <- paste(qdat$Regulon1, qdat$Regulon2, sep="~")
+  #---
+  qdat <- qdat[qdat$Quantile>prob,]
+  return(qdat)
 }
 
 #internal function '.motifsquantile'
-.cutoffquantile <- function (regcor)
+.getquantiles <- function(regcor)
 {
-  cormat <- abs(regcor)
-  cormat <- as.numeric(cut(cormat, breaks=quantile(cormat, (0:100)/100)))
-  cormat <- matrix(cormat, ncol=ncol(regcor), nrow=nrow(regcor), 
+  qtmat <- as.numeric(abs(regcor))
+  n <- sum(!is.na(qtmat))
+  if(n>100) n <- 100
+  qtmat <- cut(qtmat, breaks=quantile(qtmat, (0:n)/n, na.rm=TRUE), 
+               include.lowest=TRUE)
+  qtmat <- as.numeric(qtmat)/n
+  qtmat <- matrix(qtmat, ncol=ncol(regcor), nrow=nrow(regcor), 
                    dimnames=list(rownames(regcor), colnames(regcor)))
-  return(cormat)
+  return(qtmat)
 }
 
 ##------------------------------------------------------------------------------
 #internal function for 'mbrAssociation'
 ##it gets the jaccard information between the 'duals'
-.jcOverlap <- function(pvlist, regel, tnet)
+.jcOverlap <- function(.statlist, regs1, regs2, tnet1, tnet2)
 {
   #-----
-  regEle1 <- unique(pvlist[, "Regulon1"])
-  regEle1 <- regel[regEle1]
+  regEle1 <- unique(.statlist[, "Regulon1"])
+  regEle1 <- regs1[regEle1]
   
-  regEle2 <- unique(pvlist[, "Regulon2"])
-  regEle2 <- regel[regEle2]
+  regEle2 <- unique(.statlist[, "Regulon2"])
+  regEle2 <- regs2[regEle2]
   
   #----(jaccard)
-  ##jcagree <- .jc.overlap(regEle1, regEle2, tnet, overlap="agreement")
-  ##jcdisagree <- .jc.overlap(regEle1, regEle2, tnet, overlap="disagreement")
-  jcall <- .jc.overlap(regEle1, regEle2, tnet, overlap="all")
-  if(!is.null(dim(jcall)))
-  {
-    tb <- as.matrix(pvlist[, c("Regulon1", "Regulon2")]) 
-    jcinf <- apply(tb, 1, function(x)
-    {
-      reg <- x[1]
-      reg <- regel[reg]
-      t <- x[2]
-      t <- regel[t]
-      jcAll <- jcall[t, reg]
+  jcall <- .jc.overlap(regEle1, regEle2, cbind(tnet1,tnet2), overlap="all")
+  if(is.matrix(jcall)){
+    tb <- as.matrix(.statlist[, c("Regulon1", "Regulon2")]) 
+    jcinf <- apply(tb, 1, function(x) {
+      reg1 <- x[1]
+      reg2 <- x[2]
+      reg1 <- regs1[reg1]
+      reg2 <- regs2[reg2]
+      jcall[reg2, reg1]
     })
-    
-  }
-  else
-  {
+  } else {
     jcinf <- jcall
   }
-  pvlist <- cbind(pvlist, Jaccard.coefficient=jcinf)
-  return(pvlist)
+  .statlist <- cbind(.statlist, Jaccard.coefficient=jcinf)
+  return(.statlist)
 }
 
 #internal function '.jcOverlap'
-.jc.overlap <- function(regEle1, regEle2, tnet, overlap="all"){
-  #overlap %in% c("all","agreement","disagreement")
+.jc.overlap <- function(regEle1, regEle2, tnet, 
+                        overlap=c("all","agreement","disagreement")){
+  overlap <- match.arg(overlap)
   if(overlap == "all"){
     tnet[tnet != 0] <- 1
     jc <- function(x, xmat){
@@ -149,43 +153,44 @@
 #internal function for 'mbrAssociation'
 ##gets mutual information between 'duals' reg. elements 
 ##and the p-value when available
-.getMIorP <- function(pvlist, regel, tbmi, size1, size2, 
-                      mutualInformation=TRUE, cutoff=0)
+.getMI <- function(.statlist, tbmi1, regs1, regs2, size1, size2)
 {
-  tb <- as.matrix(pvlist[, c("Regulon1", "Regulon2")])
-  mutinf <- apply(tb, 1, function(x)
-  {
-    reg <- x[1]
-    reg <- regel[reg]
-    t <- x[2]
-    t <- regel[t]
-    s1 <- size1[reg]
-    s2 <- size2[t]
-    mi <- tbmi[t, reg]
-    mi <- abs(mi)
+  tb <- as.matrix(.statlist[, c("Regulon1", "Regulon2")])
+  mutinf <- apply(tb, 1, function(x){
+    reg1 <- x[1]
+    reg2 <- x[2]
+    reg1 <- regs1[reg1]
+    reg2 <- regs2[reg2]
+    s1 <- size1[reg1]
+    s2 <- size2[reg2]
+    mi <- abs(tbmi1[reg2, reg1])
     cbind(mi, round(s1), round(s2))
   })
-  if(mutualInformation)
-  {
-    pvlist <- cbind(pvlist, MI=mutinf[1, ], Size.Regulon1=mutinf[2, ],
-                    Size.Regulon2=mutinf[3, ])
-    pvlist <- pvlist[, c("Regulon1", "Size.Regulon1", "Regulon2", 
-                         "Size.Regulon2", "MI", "R", "Quantile")]
-    ##----MI
-    pvlist <- pvlist[which(pvlist$MI != 0), ]
-  }
-  else
-  {
-    pvlist <- cbind(pvlist, MI.Adjusted.Pvalue=mutinf[1, ])
-    pvlist$MI.Adjusted.Pvalue[
-      pvlist$MI.Adjusted.Pvalue<cutoff] <- paste("<", cutoff, sep="")
-    pvlist <- pvlist[, c("Regulon1", "Size.Regulon1", "Regulon2", 
-                         "Size.Regulon2", "MI", "MI.Adjusted.Pvalue", 
-                         "R", "Quantile")]
-  }
-  return (pvlist)
+  .statlist <- cbind(.statlist, MI=mutinf[1, ], Size.Regulon1=mutinf[2, ],
+                 Size.Regulon2=mutinf[3, ])
+  tp <- c("Regulon1", "Size.Regulon1", "Regulon2", "Size.Regulon2", "MI", 
+          "R", "Quantile")
+  .statlist <- .statlist[, tp]
+  .statlist <- .statlist[which(.statlist$MI != 0), ]
+  return (.statlist)
 }
-
+.getPMI <- function(.statlist, pvmat, regs1, regs2, cutoff)
+{
+  tb <- as.matrix(.statlist[, c("Regulon1", "Regulon2")])
+  pvinf <- apply(tb, 1, function(x){
+    reg1 <- x[1]
+    reg2 <- x[2]
+    reg1 <- regs1[reg1]
+    reg2 <- regs2[reg2]
+    pvmat[reg2, reg1]
+  })
+  .statlist <- cbind(.statlist, MI.Adjusted.Pvalue=pvinf)
+  .statlist$MI.Adjusted.Pvalue[.statlist$MI.Adjusted.Pvalue<cutoff] <- paste("<", cutoff, sep="")
+  tp <- c("Regulon1", "Size.Regulon1", "Regulon2", "Size.Regulon2", "MI", 
+          "MI.Adjusted.Pvalue", "R", "Quantile")
+  .statlist <- .statlist[, tp]
+  return (.statlist)
+}
 
 ##------------------------------------------------------------------------------
 #internal function for 'mbrAssociation'
@@ -217,36 +222,33 @@
 ##containing the size of the gene universe, and compute the number of 
 ##genes expected to occur in both regulons, the actual observed overlap, 
 ##and the pvalue from a hypergeometric test.
-.mbr.hyper <- function(pvlist, regulons, regel, universe, pAdjustMethod, 
-                       verbose=TRUE)
+.mbr.hyper <- function(.statlist, regulons1, regulons2, regs1, regs2,
+                       universe, pAdjustMethod, verbose=TRUE)
 {
-  if(verbose) cat("-Hypergeometric analysis...\n")
-  regpairstb <- pvlist[, c("Regulon1", "Regulon2")]
+  regpairs <- .statlist[, c("Regulon1", "Regulon2")]
   if(verbose) pb<-txtProgressBar(style=3)
   res <- NULL
-  for(i in 1:nrow(regpairstb))
-  {
-    if(verbose) setTxtProgressBar(pb, i/nrow(regpairstb))
-    vecpairs <- as.character(regpairstb[i, ])
+  for(i in 1:nrow(regpairs)) {
+    if(verbose) setTxtProgressBar(pb, i/nrow(regpairs))
+    vecpairs <- as.character(regpairs[i, ])
     ##---
     reg1 <- vecpairs[1]
-    reg1 <- regel[reg1]
+    reg1 <- regs1[reg1]
     reg2 <- vecpairs[2]
-    reg2 <- regel[reg2]
+    reg2 <- regs2[reg2]
     ##---
-    regulon1 <- names(regulons[[reg1]])
-    regulon2 <- names(regulons[[reg2]])
+    regulon1 <- names(regulons1[[reg1]])
+    regulon2 <- names(regulons2[[reg2]])
     tmp <- .regulon.hyper(regulon1=regulon1, universe=universe, 
                           regulon2=regulon2)
     res <- rbind(res, tmp)
   }
   if(verbose) close(pb)
-  results <- cbind(regpairstb, res)
+  results <- cbind(regpairs, res)
   adjPvals <- p.adjust(results[, "Pvalue"], method = pAdjustMethod)
   results <- cbind(results, adjPvals)
   colnames(results)[ncol(results)] <- "Adjusted.Pvalue"
   results <- results[order(results[, "Pvalue"]), , drop=FALSE]
-  
 }
 
 #internal function for '.mbr.hyper'
@@ -356,11 +358,11 @@
     stop("'evidenceColname' should be the third column in 'supplementary.table", 
          call.=FALSE)
   ##---
-  motifsInformation <- mbrGet(object, what="motifsInformation")
-  colnms <- colnames(motifsInformation)
+  dualsInformation <- mbrGet(object, what="dualsInformation")
+  colnms <- colnames(dualsInformation)
   if(evidenceColname%in%colnms)
   {
-    cat("-This evidence was already computed, overwrite the information...\n")
+    cat("-Evidence table has been already provided, overwriting the information...\n")
   }
   ##-----
   ##-----Calcules the consistency
@@ -373,11 +375,11 @@
   consc <- (sum(ttmp%in%annot)/prod(dim(ttmp)))*100
   if(consc<90) 
     warning(paste("Only",paste(round(consc,2),"%",sep=""), 
-                  "of 'supplementary.table' is listed in the annotation!\n"), 
+                  "of the 'supplementary.table' is listed in the annotation!\n"), 
             call.=FALSE)
   if(consc>90 & verbose) 
     cat(paste("-",paste(round(consc,2),"%",sep=""), 
-              "of 'supplementary.table' is listed in the annotation!\n"))
+              "of the 'supplementary.table' is listed in the annotation!\n"))
   ##-----
   return(tmp)
 }
@@ -387,8 +389,8 @@
 .checkLoops <- function (object, supplementary.table, evidenceColname, 
                          verbose=TRUE)
 {
-  motifsInformation <- mbrGet(object, what="motifsInformation")
-  motifsInformation[, evidenceColname] <- NA
+  dualsInformation <- mbrGet(object, what="dualsInformation")
+  dualsInformation[, evidenceColname] <- NA
   ##---
   if(verbose) 
     cat("-Checking whether evidences in 'supplementary.table' support 
@@ -422,21 +424,20 @@
     }
     nmsDuals <- paste(tpev[,1], tpev[,2],sep="~")
     rownames(tpev) <- nmsDuals
-    nms <- rownames(motifsInformation)
+    nms <- rownames(dualsInformation)
     ids <- nms[nms%in%nmsDuals] 
-    motifsInformation[ids,evidenceColname] <- tpev[ids,evidenceColname]
+    dualsInformation[ids,evidenceColname] <- tpev[ids,evidenceColname]
     x <- x+1
     if(verbose)setTxtProgressBar(pb, x/length(regs1))
   }
   if(verbose)close(pb)
-  object <- .mbr.set(name="motifsInformation", para=motifsInformation, object=object)
+  object <- .mbr.set(name="dualsInformation", para=dualsInformation, object=object)
   return (object)
 }
 ##------------------------------------------------------------------------------
 #".mbr.set" internal function
 ##it setts the slots of a MBR object
-.mbr.set <- 
-    function(name, para, object)
+.mbr.set <- function(name, para, object)
     {
         if(name=="para")
         {
@@ -474,9 +475,9 @@
         {
             object@dualRegulons <- para
         }
-        else if(name=="motifsInformation")
+        else if(name=="dualsInformation")
         {
-            object@results$motifsInformation <- para
+            object@results$dualsInformation <- para
         }
         else if(name=="hypergeometricResults")
         {

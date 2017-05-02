@@ -2,8 +2,8 @@
 % Please edit documentation in R/MBR-methods.R
 \docType{methods}
 \name{mbrPermutation,MBR-method}
-\alias{mbrPermutation}
 \alias{mbrPermutation,MBR-method}
+\alias{mbrPermutation}
 \title{Inference of transcriptional networks.}
 \usage{
 \S4method{mbrPermutation}{MBR}(object, verbose = TRUE, ...)
@@ -27,16 +27,18 @@ inferred
 by mutual information (with multiple hypothesis testing corrections).
 }
 \examples{
+##--- load a dataset for demonstration
 data("dt4rtn", package = "RTN")
 gexp <- dt4rtn$gexp
 annot <- dt4rtn$gexpIDs
 tfs1 <- dt4rtn$tfs[c("IRF8","IRF1","PRDM1","AFF3","E2F3")]
 tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
-##---mbrPreprocess
+
+##--- run mbrPreprocess
 rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
 regulatoryElements2=tfs2, gexpIDs=annot)
-##---mbrPermutation
+
+##--- run mbrPermutation
 rmbr <- mbrPermutation(rmbr, nPermutations=10)
 
 }
-

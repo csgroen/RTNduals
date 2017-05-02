@@ -3,41 +3,6 @@
 ##This function is used for argument checking
 mbr.checks <- function(name, para)
 {
-  if(name == "TNI")
-  {
-    if(!is.null(para))
-        stop("'TNIs' should be NULL")
-  }
-  if(name=="testedElementsTNI")
-  {
-    if((!is(para, "character") && !length(para)==0))
-        stop("'testedElementsTNIs' should be an empty 'character' vector")
-  }
-  if(name=="dualRegulons")
-  {
-    if((!is(para, "character") && !length(para)==0))
-        stop("'dualRegulons' should be an empty 'character' vector")
-  }
-  if(name=="results")
-  {
-    if((!is(para, "list") && !length(para)==0))
-        stop("'results' should be an empty 'list'")
-  }
-  if(name=="para")
-  {
-    if((!is(para, "list") && !length(para)==0))
-        stop("'para' should be an empty 'list'")
-  }
-  if(name=="summary")
-  {
-    if((!is(para, "list") && !length(para)==0))
-        stop("'summary' should be an empty 'list'")
-  }
-  if(name=="status")
-  {
-    if((!is(para, "character") && !length(para)==0))
-        stop("'status' should be an empty 'character' vector")
-  }
   if(name == "gexp")
   {
     if(!is.matrix(para) || !is.numeric(para[1, ]))
@@ -80,14 +45,14 @@ mbr.checks <- function(name, para)
   else if(name == "minRegulonSize")
   {
     if(!is.singleNumber(para) || !para>0)
-      stop("'minRegulonSize' should be numeric and >0", call.=FALSE)
+      stop("'minRegulonSize' should be numeric value > 0", call.=FALSE)
   }
   
   ##---
   else if(name == "prob")
   {
-    if(!is.singleNumber(para) || (!para>=0) && (!para<1))
-      stop("'prob' should be a numeric value >=0 and <1!", call.=FALSE)
+    if(!is.singleNumber(para) || (!para>=0) && (!para<=1))
+      stop("'prob' should be a numeric value >= 0 and <= 1!", call.=FALSE)
   }
   
   ##---
@@ -103,30 +68,24 @@ mbr.checks <- function(name, para)
   {
     if(sum(duplicated(para)) > 0)
     {
-      dupl <- para[which(duplicated(para))]
-      dupl <- paste(dupl, " ", sep = "")
-      stop("All regulatory elements should be unique!
-           The following regulatory elements are duplicated:\n", 
-           dupl, call. = FALSE)
+      stop("NOTE: Regulatory elements should be unique!", call. = FALSE)
     }
   }
   
   ##---
   else if(name=="numberRegElements")
   {
-    if(length(para) < 3)
-      stop("At least 3 regulatory elements (regulatoryElement1 + regulatoryElement2) 
-           need to be inputted!")
+    if(length(para)==0)
+      stop("NOTE: at least 1 regulatory element should be listed in both 
+           'regulatoryElement1' and 'regulatoryElement2'!", call.=FALSE)
   }
   
   ##---
   else if(name=="pAdjustMethod") 
   {
-    if(!is.character(para) || length(para)!=1 || 
-       !(para %in% c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", 
-                     "fdr", "none")))
-      stop("'pAdjustMethod' should be any one of 'holm','hochberg','hommel',
-           'bonferroni', 'BH','BY','fdr' and 'none'!",call.=FALSE)
+    tp <- c("holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr", "none")
+    if(!is.character(para) || length(para)!=1 || !(para %in% tp))
+      stop("NOTE: 'pAdjustMethod' should be any one of \n",paste(tp, collapse = ", "),call.=FALSE)
   }
   
   ##---
@@ -134,7 +93,7 @@ mbr.checks <- function(name, para)
   {
     if(!class(para) == "data.frame" || !ncol(para)==3 || !nrow(para)>=1 || 
        is.null(dim(para)))
-      stop("'supplementary.table' should be a 'data.frame' class object with 
+      stop("NOTE: 'supplementary.table' should be a 'data.frame' object with 
            3 columns (Regulon1, Regulon2, Evidence)!", call.=FALSE)
   }
   
@@ -143,8 +102,8 @@ mbr.checks <- function(name, para)
   {
     if(!is.character(para) || length(para)>1 || is.null(para) || 
        !is.singleString(para))
-      stop("'evidenceColname' should be a character value present in colnames 
-           of supplementary.table!", call.=FALSE)
+      stop("NOTE: 'evidenceColname' should be a character value listed in 
+           the 'supplementary.table' colnames!", call.=FALSE)
   }
   
   ##---
@@ -157,8 +116,8 @@ mbr.checks <- function(name, para)
     {
       dupliNms <- dupliNms[duplicated(dupliNms)]
       ids <- unique(nms[nms%in%dupliNms])
-      stop(c(paste("The possible pairs in 'supplementary.table' should be unique!", 
-                   "The following pairs are duplicated\n"), paste(ids, " ")), 
+      stop(c(paste("NOTE: all regulator pairs in 'supplementary.table'\n", 
+                   "should be unique. The following pairs are duplicated: \n"), paste(ids, " ")), 
            call.=FALSE)
     }
   }
@@ -177,10 +136,10 @@ mbr.checks <- function(name, para)
   {
     opts <- c("TNI1", "TNI2", "testedElementsTNI1", "testedElementsTNI2", 
               "dualRegulons", "results", "para", "summary", "status", 
-              "motifsInformation", "hyperResults")
+              "dualsInformation", "hyperResults")
     if(!is.character(para) || length(para)!=1 || !(para %in% opts))
-      stop(paste("'what' should be any one of the options: \n", 
-                 paste(opts,collapse = ", ") ) ,call.=FALSE)
+      stop(paste("NOTE: 'what' should be any one of the options:", 
+                 paste(opts,collapse = ", ") ), call.=FALSE)
   }
   
   }
