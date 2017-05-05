@@ -1,7 +1,7 @@
 ################################################################################
 ##########################         MBR-methods      ############################
 ################################################################################
-##------------------------------------------------------------------------------
+
 #########################################
 ###class builder
 #########################################
@@ -537,7 +537,7 @@ setMethod("mbrAssociation",
             ##--- 
             testedDuals <- sum(!is.na(regcor))
             if(testedDuals < 100){
-              tp1 <- paste("NOTE: only",testedDuals,"regulon pair(s) is(are) being tested!\n")
+              tp1 <- paste("Only",testedDuals,"regulon pair(s) is(are) being tested!\n")
               tp2 <- "Ideally, the search space should represent all possible\n"
               tp3 <- "combinations of a given class of regulators! For example,\n"
               tp4 <- "all nuclear receptors annotated for a given species."
@@ -632,12 +632,11 @@ setMethod("mbrAssociation",
 #'
 #' @param object A processed object of class \linkS4class{MBR} evaluated by the 
 #' method \code{\link[RTNduals:mbrAssociation]{mbrAssociation}}.
-#' @param supplementary.table An optional 'data.frame' with three columns 
-#' representing 
-#' (1) regulatory elements of 'TNI1', (2) regulatory elements of 'TNI2', and 
-#' (3) external evidences between the regulatory elements.
+#' @param supplementaryTable An optional 'data.frame' with three columns 
+#' representing (1) regulatory elements of 'TNI1', (2) regulatory elements 
+#' of 'TNI2', and (3) external evidences between the regulatory elements.
 #' @param evidenceColname A single character value specifying a column in 
-#' the 'supplementary.table'.
+#' the 'supplementaryTable'.
 #' @param verbose A single logical value specifying to display detailed 
 #' messages (when verbose=TRUE) or not (when verbose=FALSE).
 #' @return An \linkS4class{MBR} object with an updated 'data.frame' in the slot 
@@ -669,7 +668,7 @@ setMethod("mbrAssociation",
 #' supplementaryTable
 #' 
 #' ##--- add supplementary evidences with brDuals function
-#' rmbr <- mbrDuals(rmbr, supplementary.table=supplementaryTable,
+#' rmbr <- mbrDuals(rmbr, supplementaryTable=supplementaryTable,
 #' evidenceColname = "ToyEvidence")
 #' 
 #' ##--- check updated results
@@ -686,45 +685,44 @@ setMethod("mbrAssociation",
 ##organize duals
 setMethod( "mbrDuals",
            "MBR",
-           function(object, supplementary.table=NULL, evidenceColname, 
+           function(object, supplementaryTable=NULL, evidenceColname, 
                     verbose=TRUE)
            {
-             ##---checks
+             ##--- initial checks
              mbr.checks(name="object", para=object)
-             ##---
              dualsInformation <- mbrGet(object, what="dualsInformation")
              if(is.null(dim(dualsInformation)))
-               stop("empty results in the input 'object'!",call.=FALSE)
+               stop("NOTE: empty results in the input 'object'!",call.=FALSE)
              if(verbose) cat("-Sorting by the R value...\n")
+             
+             ##--- update dualsInformation
              idx <- sort(abs(dualsInformation[,"R"]), decreasing=TRUE, 
                          index.return=TRUE)
              dualsInformation <- dualsInformation[idx$ix, ]
              
-             #---set
+             #--- update object
              object <- .mbr.set(name="dualsInformation", 
                                 para=dualsInformation, object=object)
              object <- .mbr.set(name="dualRegulons", 
                                 para=rownames(dualsInformation), object=object)
-             if(!is.null(supplementary.table))
+             
+             #--- add supplementaryTable if avaible
+             if(!is.null(supplementaryTable))
              {
-               ##---checks
+               ##--- general checks
                if(missing(evidenceColname)) 
                  stop("'evidenceColname' should be a character value present in 
-                      colnames of supplementary.table!",call.=FALSE)
-               mbr.checks(name="supplementary.table", para=supplementary.table)
-               mbr.checks(name="uniqueInput", para=supplementary.table)
-               mbr.checks(name="evidenceColname", para=evidenceColname)
+                      colnames of 'supplementaryTable'!",call.=FALSE)
+               supplementaryTable <- mbr.checks(name="supplementaryTable", 
+                                                para=supplementaryTable, 
+                                                paraSuppl=evidenceColname)
                
-               ##---consistency
+               ##--- check consistency
                if(verbose) 
-                 cat("-Checking the 'supplementary.table' consistency...\n")
-               supplementary.table <- .consisSuppTable(object, 
-                                                       supplementary.table, 
-                                                       evidenceColname, 
-                                                       verbose=verbose)
-               ##---find duals
-               object <- .checkLoops(object, supplementary.table, 
-                                     evidenceColname, verbose=verbose)
+                 cat("-Checking annotation consistency in 'supplementaryTable'...\n")
+              .checkConsistencySuppTable(object, supplementaryTable, verbose=verbose)
+               ##--- update duals
+               object <- .updateEvidenceTable(object, supplementaryTable, verbose=verbose)
              }
              return(object)
            }
@@ -785,20 +783,24 @@ setMethod("tni2mbrPreprocess",
           {
             if(missing(TNI1)) stop("NOTE: 'tni1' is missing ", call.=FALSE)
             if(missing(TNI2)){
-              TNI2 <- TNI1 ##stop("NOTE: 'TNI2' is missing ", call.=FALSE)
+              TNI2 <- TNI1
+              mbr.checks(name='tni', para=TNI1)
+            } else {
+              mbr.checks(name='tni', para=TNI1)
+              mbr.checks(name='tni', para=TNI2)
+            }
+            if(!is.null(regulatoryElements1)){
               mbr.checks(name="regulatoryElements1", para=regulatoryElements1)
-              mbr.checks(name="regulatoryElements2", para=regulatoryElements2)
-              ##----
               regulatoryElements1 <- .checkRegel(TNI1, regulatoryElements1)
-              regulatoryElements2 <- .checkRegel(TNI2, regulatoryElements2)
-              ##----remove duplicated Regulatory Elements
               TNI1@transcriptionFactors <- regulatoryElements1
+            }
+            if(!is.null(regulatoryElements2)){
+              mbr.checks(name="regulatoryElements2", para=regulatoryElements2)
+              regulatoryElements2 <- .checkRegel(TNI2, regulatoryElements2)
               TNI2@transcriptionFactors <- regulatoryElements2
             }
-            
-            mbr.checks (name='tni', para=TNI1)
-            mbr.checks (name='tni', para=TNI2)
-            .combineTNIs (tni1=TNI1, tni2=TNI2, verbose=verbose)
+            ##---- check processing
+            .checkTNIsProcessing(tni1=TNI1, tni2=TNI2, verbose=verbose)
             #---get
             gexp <- tni.get(TNI1, what="gexp")
             regulatoryElements1 <- tni.get(TNI1, what="tfs")
@@ -807,7 +809,7 @@ setMethod("tni2mbrPreprocess",
             object <- .MBRmaker(gexp=gexp,
                                 regulatoryElements1=regulatoryElements1,
                                 regulatoryElements2=regulatoryElements2)
-            #---TNIs Update
+            #--- Update TNIs
             object <- .mbr.set(name="TNI1", para=TNI1, object=object)
             object <- .mbr.set(name="TNI2", para=TNI2, object=object)
             #---statu update
@@ -819,26 +821,17 @@ setMethod("tni2mbrPreprocess",
             TNI2_summary <- tni.get(TNI2, what="summary")
             mbr_summary <- mbrGet(object, what="summary")
             mbr_para <- mbrGet(object, what="para")
-            
-            ##---permutation
-            
+            ##--- TNI1 and TNI2
+            mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
+            mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
+            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
+            ##--- permutation
             mbr_para$TNIs$perm <- TNI1_summary$para$perm
-            mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
-            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
-            mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
-            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
-            ##---bootstrap
+            ##--- bootstrap
             mbr_para$TNIs$boot <- TNI1_summary$para$boot
-            mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
-            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
-            mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
-            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
             ##---summary dpi.filter
             mbr_para$TNIs$dpi <- TNI1_summary$para$dpi
-            mbr_summary$TNIs$TNI1 <- TNI1_summary$results$tnet
-            colnames(mbr_summary$TNIs$TNI1) <- c('RE', 'Targets', 'Edges')
-            mbr_summary$TNIs$TNI2 <- TNI2_summary$results$tnet
-            colnames(mbr_summary$TNIs$TNI2) <- c('RE', 'Targets', 'Edges')
             #---set
             object <- .mbr.set(name="para", para=mbr_para, object=object)
             object <- .mbr.set(name="summary", para=mbr_summary, object=object)
@@ -867,7 +860,7 @@ setMethod( "show",
 #' @param what a single character value specifying which information should be 
 #' retrieved from the slots. Options: "TNI1", "TNI2", "testedElementsTNI1", 
 #' "testedElementsTNI2", "dualRegulons", "results", "para", "summary", 
-#' "status", "dualsInformation" and "hyperResults"
+#' "status" and "dualsInformation"
 #' @return A slot content from a object of class 'MBR' \linkS4class{MBR} object
 #' @examples
 #' ##--- load a dataset for demonstration
@@ -900,8 +893,7 @@ setMethod( "mbrGet",
              mbr.checks(name="mbrGet", para=what)
              ##---Association options any change needs update!
              optsAssoci <- c("testedElementsTNI1", "testedElementsTNI2", 
-                             "dualRegulons", "dualsInformation", "results", 
-                             "hyperResults")
+                             "results", "dualRegulons", "dualsInformation")
              ##---get query
              if(what=="TNI1")
              {
@@ -927,7 +919,7 @@ setMethod( "mbrGet",
              {
                if(object@status["Association"] != "[x]")
                {
-                 warning("NOTE: input 'object' needs 'mbrAssociation' evaluation!",
+                 warning("Input 'object' needs 'mbrAssociation' evaluation!",
                          call.=FALSE)
                  query <- NULL
                } else {
@@ -950,10 +942,6 @@ setMethod( "mbrGet",
                  else if(what=="dualsInformation")
                  {
                    query <- object@results$dualsInformation
-                 }
-                 else if(what=="hyperResults")
-                 {
-                   query <- object@results$hypergeometricResults
                  }
                }
              }

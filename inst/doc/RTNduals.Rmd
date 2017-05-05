@@ -24,7 +24,7 @@ Recurrent patterns in biological networks have been termed network motifs [@Brac
 The **RTNduals** workflow starts with a preprocessing step that generates an **MBR-class** (Motifs Between Regulons) object from an expression matrix and two lists of regulators. The expression matrix is typically obtained from multiple samples (e.g. transcriptomes from a cancer cohort), while the lists of regulators represent some prior biological information indicating which genes in the expression matrix should be regarded as regulators. The input data can also deal with two classes of regulators; for example, genes and microRNAs. In this case, the expression matrix should comprise mRNA and miRNA expression values. Alternatively, the **MBR-class** object can be obtained by combining two **TNI-class** objects pre-computed in the **RTN** package.
 
 ## Load datasets
-This example provides the data required to generate an **MBR-class** object. The dataset **dt4rtn** is available from the **RTN** package and consists of an R list with 6 objects, 3 of which will be used in the subsequent analysis: (1) **gexp**, a named gene expression matrix with 250 samples (genes in rows, samples in cols), (2) **gexpIDs**, a data.frame with Probe-to-ENTREZ annotation, and (3) **tfs**, a named vector listing transcription factors (in this case, 149 TFs). While these datasets were extracted, pre-processed and size-reduced from @Fletcher2013 and @Curtis2012, they should be regarded as examples for demonstration purposes only
+This example provides the data required to generate an **MBR-class** object. The dataset **dt4rtn** is available from the **RTN** package and consists of an R list with 6 objects, 3 of which will be used in the subsequent analysis: (1) **gexp**, a named gene expression matrix with 250 samples (genes in rows, samples in cols), (2) **gexpIDs**, a data.frame with Probe-to-ENTREZ annotation, and (3) **tfs**, a named vector listing transcription factors (in this case, 149 TFs). While these datasets were extracted, pre-processed and size-reduced from @Fletcher2013 and @Curtis2012, they should be regarded as examples for demonstration purposes only.
 
 ```{r include=FALSE}
 library(RTNduals)
@@ -84,12 +84,14 @@ rmbr
 ```
 
 ## Run association analysis between regulons
-The `mbrAssociation` method takes the two transcriptional networks computed in the previous steps and enumerates all motifs between all regulons. The method retrieves the mutual information between regulators and assesses the agreement between the predicted downstream effects using correlation analysis. A hypergeometric test is used to evaluate whether the common targets are potentially affected by both regulators in a number greater than what would be expected by chance. A summary of the results can be accessed from the 'summary' slot using the `mbrGet` function.
+The `mbrAssociation` method takes the two transcriptional networks computed in the previous steps and enumerates all motifs between all regulons. The method retrieves the mutual information between regulators and assesses the agreement between the predicted downstream effects using correlation analysis. A hypergeometric test is used to evaluate whether the common targets are potentially affected by both regulators in a number greater than expected by chance. Note that this example warns the user that only a few regulon pairs are being tested. This warning is to recall that the search space should ideally represent all possible combinations of a given class of regulators (for example, all nuclear receptors annotated for a given species).
+
 ```{r eval=TRUE}
 ##--- run the main RTNduals methods
 rmbr <- mbrAssociation(rmbr, prob=0.75, verbose=FALSE)
-rmbr
 ```
+
+A summary of the results can be accessed from the 'summary' slot using the `mbrGet` function.
 
 ```{r eval=TRUE}
 ##--- check summary
@@ -105,20 +107,26 @@ rmbr <- mbrDuals(rmbr)
 results <- mbrGet(rmbr, what="dualsInformation")
 ```
 
-Also, when prior evidences are available this method can add a 'supplementary.table' regarding the association between regulators. The 'supplementary.table' is a 'data.frame' listing unique relationships between any two regulators used to compute the 'dual regulons' (please refer to the documentation for details on the input data format).
+Also, when prior evidences are available this method can add a 'supplementaryTable' regarding the association between regulators. The 'supplementaryTable' is a 'data.frame' listing unique relationships between any two regulators used to compute the 'dual regulons' (please refer to the documentation for details on the input data format).
 
 ```{r eval=TRUE}
 ##--- here we build a 'toy' evidence table using the 'rnorm' function
 supplementaryTable <- results[ ,c("Regulon1","Regulon2")]
 supplementaryTable$ToyEvidence <- rnorm(nrow(results))
+supplementaryTable
+```
 
+```{r eval=TRUE}
 ##--- add supplementary evidences with the 'mbrDuals' function
-rmbr <- mbrDuals(rmbr, supplementary.table = supplementaryTable, 
+rmbr <- mbrDuals(rmbr, supplementaryTable = supplementaryTable, 
                   evidenceColname = "ToyEvidence", verbose = FALSE)
+```
 
+```{r eval=TRUE}
 ##--- check updated results
 mbrGet(rmbr, what="dualsInformation")
 ```
+
 
 ## Visualize shared cloud of targets
 The package provides the `mbrPlotDuals` function to visualize 'dual regulon' and the respective motifs, which represent the shared cloud of targets. **Figure 2** shows two examples of 'dual regulons' for the schematics illustrated in **Figure 1**. In **(a)** the two regulators agree on the downstream effect (i.e. same directions), while in **(b)** they disagree (i.e. opposite directions).
@@ -131,9 +139,9 @@ mbrPlotDuals(rmbr, names.duals = duals[1])
 ![title](figures/duals.png)
 <legend><b>Figure 2.</b>  The <b>'mbrPlotDuals'</b> function shows the shared cloud of targets. In (<b>a</b>) the regulators agree on the downstream effects, while in (<b>b</b>) they disagree. The colour pattern follows the schematics in <b>Figure 1</b>.</legend>
 
-## Session Info
+# Session Info
 ```{r}
 sessionInfo()
 ```
 
-## References
+# References

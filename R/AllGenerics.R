@@ -20,7 +20,7 @@ setGeneric("mbrAssociation",
                     pAdjustMethod="BH", verbose=TRUE)
              standardGeneric("mbrAssociation"), package="RTNduals")
 setGeneric("mbrDuals",
-           function(object, supplementary.table = NULL,
+           function(object, supplementaryTable = NULL,
                     evidenceColname=NULL, verbose = TRUE)
              standardGeneric("mbrDuals"), package="RTNduals")
 setGeneric("tni2mbrPreprocess",

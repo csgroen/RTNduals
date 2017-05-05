@@ -6,20 +6,19 @@
 \alias{mbrDuals}
 \title{A summary for results from the MBR methods.}
 \usage{
-\S4method{mbrDuals}{MBR}(object, supplementary.table = NULL,
+\S4method{mbrDuals}{MBR}(object, supplementaryTable = NULL,
   evidenceColname = NULL, verbose = TRUE)
 }
 \arguments{
 \item{object}{A processed object of class \linkS4class{MBR} evaluated by the 
 method \code{\link[RTNduals:mbrAssociation]{mbrAssociation}}.}
 
-\item{supplementary.table}{An optional 'data.frame' with three columns 
-representing 
-(1) regulatory elements of 'TNI1', (2) regulatory elements of 'TNI2', and 
-(3) external evidences between the regulatory elements.}
+\item{supplementaryTable}{An optional 'data.frame' with three columns 
+representing (1) regulatory elements of 'TNI1', (2) regulatory elements 
+of 'TNI2', and (3) external evidences between the regulatory elements.}
 
 \item{evidenceColname}{A single character value specifying a column in 
-the 'supplementary.table'.}
+the 'supplementaryTable'.}
 
 \item{verbose}{A single logical value specifying to display detailed 
 messages (when verbose=TRUE) or not (when verbose=FALSE).}
@@ -59,7 +58,7 @@ supplementaryTable$ToyEvidence <- rnorm(nrow(results))
 supplementaryTable
 
 ##--- add supplementary evidences with brDuals function
-rmbr <- mbrDuals(rmbr, supplementary.table=supplementaryTable,
+rmbr <- mbrDuals(rmbr, supplementaryTable=supplementaryTable,
 evidenceColname = "ToyEvidence")
 
 ##--- check updated results

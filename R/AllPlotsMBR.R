@@ -16,8 +16,6 @@
 #' @param alpha  The alpha transparency, a number in [0,1].
 #' @param lncols A vector of length 2 indicating the colors of the negative 
 #' and positive target clouds, respectively.
-#' @param lwd  Line width, a decimal value (between 0 and 1).
-#' @param Pvalue A Boolean value that indicates whether the 'dual regulon' p-value will be showed in the plot.
 #' @return A plot with the shared target clouds between dual regulons.
 #' @examples
 #' ##--- load a dataset for demonstration
@@ -47,60 +45,53 @@
 #' duals <- mbrGet(rmbr, what="dualRegulons")
 #' mbrPlotDuals(rmbr, names.duals=duals[1])
 #'
-#' @import graphics
-#' @importFrom grDevices adjustcolor dev.off pdf colorRampPalette
+#' @importFrom grDevices adjustcolor dev.off pdf colorRampPalette col2rgb
 #' @importFrom graphics abline axis par plot.new plot.window points title 
 #' legend
 #' @export
 
 ##------------------------------------------------------------------------------
-mbrPlotDuals <- function(object, names.duals = NULL, filepath=NULL, 
-                         alpha=0.80,lncols=c("darkgreen","darkorange3"), 
-                         lwd=0.70, Pvalue = FALSE)
+mbrPlotDuals <- function(object, names.duals=NULL, filepath=NULL, 
+                         alpha=0.80, lncols=c("darkgreen","darkorange3"))
 {
   ##----check object class
   mbr.checks(name="object", para=object)
-  ##mbr.checks(name="estimator", para=estimator)
-  
+  mbr.checks(name="names.duals", para=names.duals)
+  mbr.checks(name="filepath", para=filepath)
+  mbr.checks(name="alpha", para=alpha)
+  mbr.checks(name="lncols", para=lncols)
+  ##---
   rtni <- .merge.tnis(object)
   rtni_para <- tni.get(rtni, what="para")
   estimator <- rtni_para$perm$estimator
   motifstb <- mbrGet(object, what="dualsInformation")
   motifstb <- .namesDual.check(motifstb, names.duals)
-  
-  res <- apply(motifstb, 1, function (mtfs)
-  {
+  for(i in 1:nrow(motifstb)){
+    mtfs <- motifstb[i,]
     mtfs <- as.character(mtfs)
     reg1 <- mtfs[1]
     reg2 <- mtfs[2]
     rval <- as.numeric(mtfs[3])
-    if (Pvalue){
-        pval <- as.numeric(mtfs[4])
+    pval <- as.numeric(mtfs[4])
+    labelMotif <- paste("dual_", reg1,"_vs_" ,reg2, sep="")
+    if(!is.null(filepath)){
+      filename <- paste(path.expand(filepath), labelMotif, sep="/")
     } else {
-            pval <- NULL
-        }
-    labelMotif <- paste(reg1, reg2, sep=".vs.")
-    if(!is.null(filepath))
-    {
-      file <- paste(filepath, labelMotif, sep="")
-    }else
-    {
-      file <- NULL
+      filename <- NULL
     }
-    .tni.plot.greement(rtni=rtni, estimator=estimator, 
-                       duals=c(reg1, reg2), corVal=rval, 
-                       pval = pval, file=file, 
-                       alpha=alpha, lwd=lwd, lncols=lncols)
-  })
+    .tni.plot.greement(rtni=rtni, duals=c(reg1, reg2), corVal=rval,
+                       pval=pval, filename=filename, lncols=lncols,
+                       alpha=alpha, estimator=estimator
+                      )
+  }
 }
 
 ##------------------------------------------------------------------------------
 ##subfunction for 'mbrPlotDuals'
-.tni.plot.greement<-function(rtni, duals, corVal, file=NULL, pval=NULL,
-                             lncols=c("blue","red"), 
-                             bgcols=lncols, lwd=0.70, alpha=0.80,
-                             estimator='spearman', sharedTargets=TRUE, 
-                             mapAssignedAssociation=TRUE)
+.tni.plot.greement<-function(rtni, duals, corVal, pval, filename=NULL, 
+                             lncols=c("blue","red"), bgcols=lncols, 
+                             alpha=0.80, estimator='spearman', lwd=0.70,
+                             sharedTargets=TRUE, mapAssignedAssociation=TRUE)
 {
   ##---
   tfs <- tni.get(rtni, "tfs")
@@ -120,8 +111,7 @@ mbrPlotDuals <- function(object, names.duals = NULL, filepath=NULL,
     idx<-rowSums(tnet!=0)==2
     tnet<-tnet[idx,]
     xy<-xy[idx,]
-  } else
-  {
+  } else {
     idx<-rowSums(xy!=0)>=1
     tnet<-tnet[idx,]
     xy<-xy[idx,]
@@ -137,9 +127,8 @@ mbrPlotDuals <- function(object, names.duals = NULL, filepath=NULL,
   #bgcols[4]<-"white"
   bgcols<-adjustcolor(bgcols,alpha.f=alpha)
   ##---plot
-  if(!is.null(file))
-  {
-    pdf(file=paste(file,".pdf",sep=""), height=3, width=3)
+  if(!is.null(filename)){
+    pdf(file=paste(filename,".pdf",sep=""), height=3, width=3)
   }
   par(mgp=c(2.2, 0.5, 0),mar=c(3.5, 3.5, 1, 1) + 0.1)
   plot.new()
@@ -148,38 +137,37 @@ mbrPlotDuals <- function(object, names.duals = NULL, filepath=NULL,
   axis(1,cex.axis=1,las=1,tcl=-0.15,lwd=2)
   title(xlab=xlab,ylab=ylab,cex.lab=1)
   
-  if(corVal<0)
-  {
+  ##---legend
+  if(pval < 2e-16){
+    pval <- "< 2e-16"
+  } else {
+    pval <- paste("= ",signif(pval,2),sep="")
+  }
+  legs <- paste("Adj.Pval ", pval, sep="")
+  
+  if(corVal<0){
     ##---negative Dual
     tpp<-xy[(sign(tnet[, 1])==1 & sign(tnet[, 2])==-1),]
     points(tpp, col=lncols[1], pch=21, cex=0.7, bg=bgcols[1], lwd=lwd)
-    
     tpp<-xy[sign(tnet[, 1])==-1 & sign(tnet[, 2])==1,]
     points(tpp,col=lncols[1],pch=21,cex=0.7,bg="white", lwd=lwd)
-  }else
-  {
+    legend("topright", legs, bty="n", cex = 0.9)
+  } else {
     ##---positive Dual
     tpp<-xy[rowSums(sign(tnet))==2, ]
     points(tpp,col=lncols[2],pch=21,cex=0.7,bg="white", lwd=lwd)
-    
     tpp<-xy[rowSums(sign(tnet))==-2, ]
     points(tpp,col=lncols[2],pch=21,cex=0.7,bg=bgcols[2], lwd=lwd)
+    legend("bottomright", legs, bty="n", cex = 0.7)
   }
   
-  ##---legend
-  if(!is.null(pval)){
-      if(pval <= 2e-16)
-          pval <- 2e-16
-      legend("topright", legend=paste("Adj.Pval=", pval, sep=" "), bty="n")
-  }
   ##---lines
   abline(h=0, lwd=1.5, lty="12", col="grey70")
   abline(v=0, lwd=1.5, lty="12", col="grey70")
-  if(!is.null(file))
-  {
+  if(!is.null(filename)){
     dev.off()
-    cat(paste("File '", paste(file,".pdf",sep=""),"' generated!\n\n", 
-              sep=""))
+    tp <- paste("- file '", filename,".pdf' has been generated!\n", sep="")
+    cat(tp)
   }
   ##---report
   colnames(xy)<-paste(names(duals),"(R)",sep="")
@@ -189,7 +177,6 @@ mbrPlotDuals <- function(object, names.duals = NULL, filepath=NULL,
   invisible(report)
 }
 
-
 ##subfunction for 'mbrPlotDuals'
 .merge.tnis <- function (object)
 {
@@ -197,23 +184,15 @@ mbrPlotDuals <- function(object, names.duals = NULL, filepath=NULL,
   TNI2 <- mbrGet(object, "TNI2")
   elreg1 <- tni.get(TNI1, "tfs")
   elreg2 <- tni.get(TNI2, "tfs")
-  elregs <- c (elreg1, elreg2)
-  rtni_merge <-
-    new ("TNI",
-         gexp = tni.get(TNI1, "gexp"),
-         transcriptionFactors = elregs)
+  elregs <- c(elreg1, elreg2)
+  elregs <- elregs[!duplicated(elregs)]
+  rtni_merge <- new("TNI",gexp = tni.get(TNI1, "gexp"), transcriptionFactors = elregs)
   rtni_merge@annotation <- object@TNI1@annotation
   rtni_merge@para <- tni.get(TNI1, "para")
   #---
-  mirmt <- tni.get(TNI2, "refnet") [, elreg2]
-  rtni_merge@results$tn.ref <- cbind (tni.get(TNI1, "refnet") [, elreg1], 
-                                      mirmt)
-  
-  ##---Get the tnet (dpi net)
-  # mirmt <- tni.get(TNI2, "tnet") [, elreg2]
-  # rtni_merge@results$tn.dpi <- cbind (tni.get(TNI1, "tnet") [, elreg1], 
-  #                                     mirmt)
-  # rtni_merge@status [1:4] <- "[x]"
+  tnet1 <- tni.get(TNI1, "refnet")[, elreg1]
+  tnet2 <- tni.get(TNI2, "refnet")[, setdiff(elreg2,elreg1)]
+  rtni_merge@results$tn.ref <- cbind(tnet1, tnet2)
   rtni_merge@status [1:3] <- "[x]"
   return (rtni_merge)
 }
@@ -229,7 +208,8 @@ mbrPlotDuals <- function(object, names.duals = NULL, filepath=NULL,
            see 'mbrGet' function. \n", call.=FALSE)
     if(sum(names.duals%in%rownames(motifstb)) != 
        length(names.duals)) 
-      stop ("NOTE: Not all names are available for dual regulons! \n", call.=FALSE)
+      stop ("NOTE: Not all names are available for dual regulons! \n", 
+            call.=FALSE)
     ##----
     motifstb <- motifstb[names.duals, c("Regulon1","Regulon2", "R", "Hypergeometric.Adjusted.Pvalue")]
   } else {

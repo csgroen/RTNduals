@@ -40,7 +40,6 @@ rmbr
 ## ----eval=TRUE-----------------------------------------------------------
 ##--- run the main RTNduals methods
 rmbr <- mbrAssociation(rmbr, prob=0.75, verbose=FALSE)
-rmbr
 
 ## ----eval=TRUE-----------------------------------------------------------
 ##--- check summary
@@ -55,11 +54,14 @@ results <- mbrGet(rmbr, what="dualsInformation")
 ##--- here we build a 'toy' evidence table using the 'rnorm' function
 supplementaryTable <- results[ ,c("Regulon1","Regulon2")]
 supplementaryTable$ToyEvidence <- rnorm(nrow(results))
+supplementaryTable
 
+## ----eval=TRUE-----------------------------------------------------------
 ##--- add supplementary evidences with the 'mbrDuals' function
-rmbr <- mbrDuals(rmbr, supplementary.table = supplementaryTable, 
+rmbr <- mbrDuals(rmbr, supplementaryTable = supplementaryTable, 
                   evidenceColname = "ToyEvidence", verbose = FALSE)
 
+## ----eval=TRUE-----------------------------------------------------------
 ##--- check updated results
 mbrGet(rmbr, what="dualsInformation")
 
