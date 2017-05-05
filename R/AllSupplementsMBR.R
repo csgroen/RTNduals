@@ -7,19 +7,26 @@
 .checkRegel <- function(tni, regulatoryElements)
 {
   #---check regulatoryElements
-  tp <- sapply(colnames(tni@annotation), function(i)
-  {
+  tp <- sapply(colnames(tni@annotation), function(i) {
     sum(regulatoryElements%in%tni@annotation[, i])
   })
-  colid <- names(tp[which.max (tp)])
+  colid <- names(tp[which.max(tp)])
   idx <- which(tni@annotation[, colid]%in%regulatoryElements)
-  if(length(idx) < length(regulatoryElements))
-  {
+  if(length(idx) < length(regulatoryElements)) {
     warning("Not all 'regulatory elements' are available in the 'TNI' annotation!",
             call.=FALSE)
   }
   regulatoryElements <- tni@annotation[idx,]
   idx <- match(rownames(regulatoryElements), tni@transcriptionFactors)
+  if(length(idx)==0){
+    tp <- paste("NOTE: no 'regulatory element' has been used to call",
+                "regulons in the provided 'TNI'!")
+    stop(tp, call.=FALSE)
+  } else if(length(idx) < length(regulatoryElements)){
+    tp <- paste("Not all input 'regulatory elements' have been used to call",
+                "regulons in the provided 'TNI'!")
+    warning(tp, call.=FALSE)
+  }
   regulatoryElements <- tni@transcriptionFactors[idx]
   return (regulatoryElements)
   }
@@ -277,160 +284,103 @@
 }
 ##------------------------------------------------------------------------------
 #internal function for 'tni2mbrPreprocess'
-##it takes two 'TNIs' objects produced separetely and creates a 'MBR' object
-.combineTNIs <- function (tni1, tni2, verbose = TRUE)
+##it checks two 'TNIs' objects produced separetely
+.checkTNIsProcessing <- function (tni1, tni2, verbose = TRUE)
 {
   ## checks gexp consistency
-  v1 <- as.numeric(tni1@gexp)
-  v2 <- as.numeric(tni2@gexp)
   if (verbose)
     cat("-Checking expression matrix consistency...\n")
-  if (sum(v1 - v2) != 0)
-    stop("The TNIs should use the same expression matrix.")
+  if (!identical(tni1@gexp,tni2@gexp))
+    stop("NOTE: TNIs should use the same expression matrix.")
   
   ## checks parameter consistency
   if (verbose)
     cat("-Checking parameter consistency...\n")
-  if(!all(tni1@para %in% tni2@para))
-  {
-    ## gives feedback on which parameters are wrong
-    if (verbose)
-    {
-      idx <- which(!(tni1@para %in% tni2@para))
-      
-      for (i in idx)
-      {
-        p1 <- unlist(tni1@para[[i]])
-        p2 <- unlist(tni2@para[[i]])
-        
-        ind <- which(!(p1 %in% p2))
-        
-        if (i == idx[1])
-          cat ("- Parameter differences:\n")
-        
-        for (j in ind)
-        {
-          line <- c(p1[j], p2[j])
-          print(line)
-        }
-      }
-    }
-    stop("TNIs were not computed using the same parameters.")
+  tp1 <- unlist(tni1@para)
+  tp2 <- unlist(tni2@para)
+  idx <- tp1%in%tp2
+  if(!all(idx)){
+    tp <- paste("TNIs were not computed using the same parameters!",
+                "The following patameters seem to differ between the two:\n",
+                paste(names(tp1)[idx], collapse = "\n "))
+    warning(tp)
   }
-  if (verbose)
-    cat("-Checking whether regulatory elements are unique to each TNI...\n")
-  if (any(tni1@transcriptionFactors %in% tni2@transcriptionFactors))
-    stop ("There are regulatory elements listed in both TNIs.")
-  
   ## checks whether both TNIs have undergone all methods in RTN from
   ## Permutation to DPI filter
   if (verbose)
     cat("-Checking if all TNI methods are completed...\n")
-  
-  if(any(tni1@status[1:4] != "[x]") || any(tni2@status[1:4] != "[x]"))
-  {
+  if(any(tni1@status[1:4] != "[x]") || any(tni2@status[1:4] != "[x]")){
     ## gives feedback on which methods were not run
-    if (verbose)
-    {
+    if (verbose){
       cat("TNI1: ")
       print(tni1@status)
       cat("TNI2: ")
       print(tni2@status)
     }
-    stop("Both TNIs must be evaluated by the RTN pipeline up to 
-         the DPI filter.")
+    tp <- paste("NOTE: both TNIs must be evaluated by the RTN pipeline,",
+                "up to the DPI filter step!")
+    stop(tp, call. = FALSE)
   }
-  }
+}
 
 ##------------------------------------------------------------------------------
 #internal function for 'mbrDuals'
-##it checks the consistency of supplementary.table
-.consisSuppTable <- function(object, supplementary.table, evidenceColname, 
-                             verbose)
-{
-  ##-----checks
-  if(!evidenceColname%in%colnames(supplementary.table)) 
-    stop("'evidenceColname' should be a valid colname in 'supplementary.table", 
-         call.=FALSE)
+##it checks the consistency of supplementaryTable
+.checkConsistencySuppTable <- function(object, supplementaryTable, verbose)
+  {
   ##---
-  idx <- which(colnames(supplementary.table)%in%evidenceColname)
-  if(idx!=3) 
-    stop("'evidenceColname' should be the third column in 'supplementary.table", 
-         call.=FALSE)
-  ##---
+  evidenceColname <- colnames(supplementaryTable)[3]
   dualsInformation <- mbrGet(object, what="dualsInformation")
   colnms <- colnames(dualsInformation)
   if(evidenceColname%in%colnms)
   {
-    cat("-Evidence table has been already provided, overwriting the information...\n")
+    cat("-NOTE: evidence table has been already provided, overwriting information...\n")
   }
-  ##-----
-  ##-----Calcules the consistency
-  idx <- which(colnames(supplementary.table)%in%evidenceColname)
-  tni1 <- mbrGet(object, what="TNI1"); annot <- tni1@annotation 
-  annot <- as.matrix(annot)
-  tmp <- as.matrix(supplementary.table); ttmp <- tmp[,-idx]
-  colnames(tmp) <- colnames(supplementary.table)
-  ##---consistency between supplementary.table and annotation
-  consc <- (sum(ttmp%in%annot)/prod(dim(ttmp)))*100
-  if(consc<90) 
-    warning(paste("Only",paste(round(consc,2),"%",sep=""), 
-                  "of the 'supplementary.table' is listed in the annotation!\n"), 
-            call.=FALSE)
-  if(consc>90 & verbose) 
-    cat(paste("-",paste(round(consc,2),"%",sep=""), 
-              "of the 'supplementary.table' is listed in the annotation!\n"))
-  ##-----
-  return(tmp)
+  ##-----check consistency
+  regs <- c(dualsInformation$Regulon1,dualsInformation$Regulon2)
+  regs <- unique(regs)
+  regsStab <- c(supplementaryTable$Regulon1,supplementaryTable$Regulon2)
+  regsStab <- unique(regsStab)
+  ##---consistency between supplementaryTable and annotation
+  consc <- (sum(regs%in%regsStab)/length(regs))*100
+  if(consc<70){
+    tp <- paste("Only ",round(consc,1),"% of the regulatory elements ",
+                "are represented in the 'supplementaryTable'!\n", sep="")
+    warning(tp)
+  } else if(consc>=70 && verbose){
+    tp <- paste("-",round(consc,1),"% of the regulatory elements ",
+                "are represented in the 'supplementaryTable'!\n", sep="")
+    cat(tp)
+  }
 }
 ##------------------------------------------------------------------------------
 #internal function for 'mbrDuals'
-##it checks the evidences for 'duals' in 'supplementary.table'
-.checkLoops <- function (object, supplementary.table, evidenceColname, 
-                         verbose=TRUE)
+##it checks the evidences for 'duals' in 'supplementaryTable'
+.updateEvidenceTable <- function (object, supplementaryTable, verbose=TRUE)
 {
+  evidenceColname <- colnames(supplementaryTable)[3]
   dualsInformation <- mbrGet(object, what="dualsInformation")
   dualsInformation[, evidenceColname] <- NA
   ##---
-  if(verbose) 
-    cat("-Checking whether evidences in 'supplementary.table' support 
-        the existence of the inferred duals...\n")
-  if(verbose)pb<-txtProgressBar(style=3)
-  x <- 0
-  ##---
-  regs1 <- mbrGet(object, what="testedElementsTNI1")
-  regs2 <- mbrGet(object, what="testedElementsTNI2")
-  regs <- c(regs1,regs2)
-  for (i in 1:length(regs1))
-  {
-    rg1 <- regs1[i]
-    idx1 <- which((supplementary.table[,1] %in% rg1) | 
-                    (supplementary.table[,1] %in% names(rg1)))
-    idx2 <- which((supplementary.table[,2] %in% rg1) | 
-                    (supplementary.table[,2] %in% names(rg1)))
-    tpev <- supplementary.table[c(idx1,idx2),];
-    for(j in 1:length(regs))
-    {
-      rg <- regs[j]
-      idx <- which((tpev%in%rg) | (tpev%in%names(rg)))
-      tpev[idx] <- names(rg)
-    }
-    if(!is.null(dim(tpev)))
-    {
-      tpev <- rbind(tpev, tpev[, c(2,1,3)])
-    }else
-    {
-      tpev <- rbind(tpev, tpev[c(2,1,3)]) 
-    }
-    nmsDuals <- paste(tpev[,1], tpev[,2],sep="~")
-    rownames(tpev) <- nmsDuals
-    nms <- rownames(dualsInformation)
-    ids <- nms[nms%in%nmsDuals] 
-    dualsInformation[ids,evidenceColname] <- tpev[ids,evidenceColname]
-    x <- x+1
-    if(verbose)setTxtProgressBar(pb, x/length(regs1))
+  if(verbose){
+    tp <- paste("-Transferring evidences from 'supplementaryTable'",
+                "to inferred duals...\n", sep=" ")
+    cat(tp)
   }
-  if(verbose)close(pb)
+  duals <- rownames(dualsInformation)
+  ##--- Test A-B ordering, and update if available
+  rownames(supplementaryTable) <- paste(supplementaryTable$Regulon1,supplementaryTable$Regulon2, sep = "~")
+  suppl <- supplementaryTable[rownames(supplementaryTable)%in%duals,]
+  if(nrow(suppl)>0){
+    dualsInformation[rownames(suppl),evidenceColname] <- suppl[[evidenceColname]]
+  }
+  ##--- Test B-A ordering, and update if available
+  rownames(supplementaryTable) <- paste(supplementaryTable$Regulon2,supplementaryTable$Regulon1, sep = "~")
+  suppl <- supplementaryTable[rownames(supplementaryTable)%in%duals,]
+  if(nrow(suppl)>0){
+    dualsInformation[rownames(suppl),evidenceColname] <- suppl[[evidenceColname]]
+  }
+  ##--- update object
   object <- .mbr.set(name="dualsInformation", para=dualsInformation, object=object)
   return (object)
 }

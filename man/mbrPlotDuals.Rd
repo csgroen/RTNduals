@@ -5,7 +5,7 @@
 \title{Plot shared target clouds between dual regulons.}
 \usage{
 mbrPlotDuals(object, names.duals = NULL, filepath = NULL, alpha = 0.8,
-  lncols = c("darkgreen", "darkorange3"), lwd = 0.7, Pvalue = FALSE)
+  lncols = c("darkgreen", "darkorange3"))
 }
 \arguments{
 \item{object}{A processed object of class \linkS4class{MBR} evaluated by 
@@ -21,10 +21,6 @@ should be saved.}
 
 \item{lncols}{A vector of length 2 indicating the colors of the negative 
 and positive target clouds, respectively.}
-
-\item{lwd}{Line width, a decimal value (between 0 and 1).}
-
-\item{Pvalue}{A Boolean value that indicates whether the 'dual regulon' p-value will be showed in the plot.}
 }
 \value{
 A plot with the shared target clouds between dual regulons.
