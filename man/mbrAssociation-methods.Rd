@@ -7,7 +7,7 @@
 \title{Motifs analysis and inference of 'dual regulons'.}
 \usage{
 \S4method{mbrAssociation}{MBR}(object, regulatoryElements1 = NULL,
-  regulatoryElements2 = NULL, minRegulonSize = 30, prob = 0.95,
+  regulatoryElements2 = NULL, minRegulonSize = 15, prob = 0.95,
   estimator = "spearman", pAdjustMethod = "BH", verbose = TRUE)
 }
 \arguments{
@@ -59,7 +59,7 @@ tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
 
 ##--- run mbrPreprocess
 rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
-regulatoryElements2=tfs2, gexpIDs=annot)
+regulatoryElements2=tfs2, rowAnnotation=annot)
 
 ##--- run mbrPermutation
 rmbr <- mbrPermutation(rmbr, nPermutations=10)
@@ -67,7 +67,10 @@ rmbr <- mbrPermutation(rmbr, nPermutations=10)
 ##--- run mbrBootstrap
 rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
 
+##--- run mbrDpiFilter
+rmbr <- mbrDpiFilter(rmbr)
+
 ##--- run mbrAssociation
-rmbr <- mbrAssociation(rmbr, prob=0.75)
+rmbr <- mbrAssociation(rmbr, minRegulonSize = 15, prob=0.75)
 
 }

@@ -41,6 +41,6 @@ tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
 
 ##--- run mbrPreprocess
 rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
-regulatoryElements2=tfs2, gexpIDs=annot)
+regulatoryElements2=tfs2, rowAnnotation=annot)
 
 }

@@ -27,13 +27,16 @@
 #' 
 #' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
-#' regulatoryElements2=tfs2, gexpIDs=annot)
+#' regulatoryElements2=tfs2, rowAnnotation=annot)
 #' 
 #' ##--- run mbrPermutation
 #' rmbr <- mbrPermutation(rmbr, nPermutations=10)
 #' 
 #' ##--- run mbrBootstrap
 #' rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
+#' 
+#' ##-- run mbrDpiFilter
+#' rmbr <- mbrDpiFilter(rmbr)
 #' 
 #' ##--- run mbrAssociation
 #' rmbr <- mbrAssociation(rmbr, prob=0.75)
@@ -94,7 +97,7 @@ mbrPlotDuals <- function(object, names.duals=NULL, filepath=NULL,
                              sharedTargets=TRUE, mapAssignedAssociation=TRUE)
 {
   ##---
-  tfs <- tni.get(rtni, "tfs")
+  tfs <- tni.get(rtni, "regulatoryElements")
   idx1 <- match(duals, names(tfs))
   idx2 <- match(duals, tfs)
   idxcheck<-which(is.na(idx1))
@@ -172,7 +175,7 @@ mbrPlotDuals <- function(object, names.duals=NULL, filepath=NULL,
   ##---report
   colnames(xy)<-paste(names(duals),"(R)",sep="")
   nms<-rownames(xy)
-  annot<-rtni@annotation[nms,]
+  annot<-rtni@rowAnnotation[nms,]
   report<-cbind(annot,format(round(xy,3)))
   invisible(report)
 }
@@ -182,12 +185,12 @@ mbrPlotDuals <- function(object, names.duals=NULL, filepath=NULL,
 {
   TNI1 <- mbrGet(object, "TNI1")
   TNI2 <- mbrGet(object, "TNI2")
-  elreg1 <- tni.get(TNI1, "tfs")
-  elreg2 <- tni.get(TNI2, "tfs")
+  elreg1 <- tni.get(TNI1, "regulatoryElements")
+  elreg2 <- tni.get(TNI2, "regulatoryElements")
   elregs <- c(elreg1, elreg2)
   elregs <- elregs[!duplicated(elregs)]
-  rtni_merge <- new("TNI",gexp = tni.get(TNI1, "gexp"), transcriptionFactors = elregs)
-  rtni_merge@annotation <- object@TNI1@annotation
+  rtni_merge <- new("TNI",gexp = tni.get(TNI1, "gexp"), regulatoryElements = elregs)
+  rtni_merge@rowAnnotation <- object@TNI1@rowAnnotation
   rtni_merge@para <- tni.get(TNI1, "para")
   #---
   tnet1 <- tni.get(TNI1, "refnet")[, elreg1]

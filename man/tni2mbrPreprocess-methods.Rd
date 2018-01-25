@@ -40,16 +40,18 @@ tfs2 <- dt4rtn$tfs[c("HCLS1","STAT4","STAT1","LMO4","ZNF552")]
 \dontrun{
 
 ##--- compute a TNI for tfs1
-tni1 <- new("TNI", gexp=gexp, transcriptionFactors=tfs1)
-tni1 <- tni.preprocess(tni1, gexpIDs=annot)
+tni1 <- new("TNI", gexp=gexp, regulatoryElements=tfs1)
+tni1 <- tni.preprocess(tni1, rowAnnotation=annot)
 tni1 <-tni.permutation(tni1)
 tni1 <-tni.bootstrap(tni1)
+tni1 <-tni.dpi.filter(tni1)
 
 ##--- compute a TNI for tfs2
-tni2 <- new("TNI", gexp=gexp, transcriptionFactors=tfs2)
-tni2 <- tni.preprocess(tni2, gexpIDs=annot)
+tni2 <- new("TNI", gexp=gexp, regulatoryElements=tfs2)
+tni2 <- tni.preprocess(tni2, rowAnnotation=annot)
 tni2 <-tni.permutation(tni2)
 tni2 <-tni.bootstrap(tni2)
+tni2 <-tni.dpi.filter(tni2)
 
 ##--- run tni2mbrPreprocess
 rmbr <- tni2mbrPreprocess(tni1, tni2)

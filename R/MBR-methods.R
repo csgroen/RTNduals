@@ -56,9 +56,9 @@ newMBR <- function(gexp, regulatoryElements1, regulatoryElements2)
   
   #---creating TNIs
   regulonsTNI1 <- new("TNI", gexp=gexp, 
-                      transcriptionFactors=regulatoryElements1)
+                      regulatoryElements=regulatoryElements1)
   regulonsTNI2 <- new("TNI", gexp=gexp, 
-                      transcriptionFactors=regulatoryElements2)
+                      regulatoryElements=regulatoryElements2)
   
   #---creating MBR-object
   new(Class="MBR", TNI1=regulonsTNI1, TNI2=regulonsTNI2)
@@ -88,7 +88,7 @@ newMBR <- function(gexp, regulatoryElements1, regulatoryElements2)
 #' 
 #' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
-#' regulatoryElements2=tfs2, gexpIDs=annot)
+#' regulatoryElements2=tfs2, rowAnnotation=annot)
 #'
 #' @import RTN 
 #'
@@ -116,10 +116,10 @@ setMethod("mbrPreprocess",
             if(verbose) cat("-Preprocessing TNI objects...\n\n")
             TNI1 <- tni.preprocess(TNI1, verbose=verbose,...=...)
             TNI2 <- tni.preprocess(TNI2, verbose=verbose,...=...)
-            tfs1 <- tni.get(TNI1, what="tfs")
-            tfs2 <- tni.get(TNI2, what="tfs")
-            mbr.checks(name="regulatoryElements", para=tfs1)
-            mbr.checks(name="regulatoryElements", para=tfs2)
+            regulatoryElements1 <- tni.get(TNI1, what="regulatoryElements")
+            regulatoryElements2 <- tni.get(TNI2, what="regulatoryElements")
+            mbr.checks(name="regulatoryElements", para=regulatoryElements1)
+            mbr.checks(name="regulatoryElements", para=regulatoryElements2)
             
             ##---set
             object <- .mbr.set(name="TNI1", para=TNI1, object=object)
@@ -154,7 +154,7 @@ setMethod("mbrPreprocess",
 #' 
 #' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
-#' regulatoryElements2=tfs2, gexpIDs=annot)
+#' regulatoryElements2=tfs2, rowAnnotation=annot)
 #' 
 #' ##--- run mbrPermutation
 #' rmbr <- mbrPermutation(rmbr, nPermutations=10)
@@ -172,6 +172,9 @@ setMethod("mbrPermutation",
           "MBR",
           function(object, verbose=TRUE, ...)
           {
+            ##--- input check
+            if(object@status["Preprocess"]!="[x]")
+              stop("NOTE: MBR object is not compleate: requires preprocessing!")
             ##---checks
             mbr.checks(name="object", para=object)
             mbr.checks(name="verbose", para=verbose)
@@ -231,7 +234,7 @@ setMethod("mbrPermutation",
 #' 
 #' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
-#' regulatoryElements2=tfs2, gexpIDs=annot)
+#' regulatoryElements2=tfs2, rowAnnotation=annot)
 #' 
 #' ##--- run mbrPermutation
 #' rmbr <- mbrPermutation(rmbr, nPermutations=10)
@@ -253,6 +256,11 @@ setMethod("mbrBootstrap",
           "MBR",
           function(object, verbose=TRUE, ...)
           {
+            ##--- input check
+            if(object@status["Preprocess"]!="[x]")
+              stop("NOTE: MBR object is not compleate: requires preprocessing!")
+            if(object@status["Permutation"]!="[x]")
+              stop("NOTE: MBR object is not compleate: requires permutation analysis!") 
             ##---checks
             mbr.checks(name="object", para=object)
             mbr.checks(name="verbose", para=verbose)
@@ -316,7 +324,7 @@ setMethod("mbrBootstrap",
 #' 
 #' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
-#' regulatoryElements2=tfs2, gexpIDs=annot)
+#' regulatoryElements2=tfs2, rowAnnotation=annot)
 #' 
 #' ##--- run mbrPermutation
 #' rmbr <- mbrPermutation(rmbr, nPermutations=10)
@@ -341,6 +349,11 @@ setMethod("mbrDpiFilter",
           "MBR",
           function(object, verbose=TRUE, ...)
           {
+            ##--- input check
+            if(object@status["Preprocess"]!="[x]")
+              stop("NOTE: MBR object is not compleate: requires preprocessing!")
+            if(object@status["Permutation"]!="[x]")
+              stop("NOTE: MBR object is not compleate: requires permutation/bootstrap analysis!")
             ##---checks
             mbr.checks(name="object", para=object)
             mbr.checks(name="verbose", para=verbose)
@@ -416,7 +429,7 @@ setMethod("mbrDpiFilter",
 #' 
 #' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
-#' regulatoryElements2=tfs2, gexpIDs=annot)
+#' regulatoryElements2=tfs2, rowAnnotation=annot)
 #' 
 #' ##--- run mbrPermutation
 #' rmbr <- mbrPermutation(rmbr, nPermutations=10)
@@ -424,8 +437,11 @@ setMethod("mbrDpiFilter",
 #' ##--- run mbrBootstrap
 #' rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
 #' 
+#' ##--- run mbrDpiFilter
+#' rmbr <- mbrDpiFilter(rmbr)
+#' 
 #' ##--- run mbrAssociation
-#' rmbr <- mbrAssociation(rmbr, prob=0.75)
+#' rmbr <- mbrAssociation(rmbr, minRegulonSize = 15, prob=0.75)
 #'
 #' @import RTN 
 #' @importFrom stats p.adjust phyper
@@ -442,9 +458,16 @@ setMethod("mbrDpiFilter",
 setMethod("mbrAssociation",
           "MBR",
           function(object, regulatoryElements1=NULL, regulatoryElements2=NULL, 
-                   minRegulonSize=30, prob=0.95, estimator='spearman', 
+                   minRegulonSize=15, prob=0.95, estimator='spearman', 
                    pAdjustMethod="BH", verbose=TRUE)
           {
+            ##--- input check
+            if(object@status["Preprocess"]!="[x]")
+              stop("NOTE: MBR object is not compleate: requires preprocessing!")
+            if(object@status["Permutation"]!="[x]")
+              stop("NOTE: MBR object is not compleate: requires permutation/bootstrap and DPI filter!")  
+            if(object@status["DPI.filter"]!="[x]")
+              stop("NOTE: MBR object is not compleate: requires DPI filter!")
             ##--- gets
             TNI1 <- mbrGet(object, what="TNI1")
             TNI2 <- mbrGet(object, what="TNI2")
@@ -460,7 +483,7 @@ setMethod("mbrAssociation",
             {
               if(verbose) 
                 cat("-Selecting regulatory elements from TNI1 object...\n")
-              regulatoryElements1 <- tni.get(TNI1, "tfs")
+              regulatoryElements1 <- tni.get(TNI1, "regulatoryElements")
             } else
             {
               regulatoryElements1 <- .checkRegel(TNI1, regulatoryElements1)
@@ -469,7 +492,7 @@ setMethod("mbrAssociation",
             {
               if(verbose) 
                 cat("-Selecting regulatory elements from TNI2 object...\n")
-              regulatoryElements2 <- tni.get(TNI2, "tfs")
+              regulatoryElements2 <- tni.get(TNI2, "regulatoryElements")
             } else
             {
               regulatoryElements2 <- .checkRegel(TNI2, regulatoryElements2)
@@ -478,7 +501,7 @@ setMethod("mbrAssociation",
             mbr.checks(name="numberRegElements", para=regulatoryElements2)
             
             ##--- get regulons
-            what <- "refregulons.and.mode"
+            what <- "regulons.and.mode"
             regulons1 <- tni.get(TNI1, what=what)
             regulons2 <- tni.get(TNI2, what=what)
             
@@ -651,10 +674,11 @@ setMethod("mbrAssociation",
 #' 
 #' ##--- run mbrAssociation
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
-#' regulatoryElements2=tfs2, gexpIDs=annot)
+#' regulatoryElements2=tfs2, rowAnnotation=annot)
 #' rmbr <- mbrPermutation(rmbr, nPermutations=10)
 #' rmbr <- mbrBootstrap(rmbr, nBootstrap=10)
-#' rmbr <- mbrAssociation(rmbr, prob=0.75)
+#' rmbr <- mbrDpiFilter(rmbr)
+#' rmbr <- mbrAssociation(rmbr, minRegulonSize = 15, prob=0.75)
 #' rmbr <- mbrDuals(rmbr)
 #' 
 #' ##--- check results
@@ -688,6 +712,8 @@ setMethod( "mbrDuals",
            function(object, supplementaryTable=NULL, evidenceColname, 
                     verbose=TRUE)
            {
+             if(object@status["Association"]!="[x]")
+               stop("NOTE: MBR object is not compleate: requires 'mbrAssociation' analysis!")
              ##--- initial checks
              mbr.checks(name="object", para=object)
              dualsInformation <- mbrGet(object, what="dualsInformation")
@@ -752,16 +778,18 @@ setMethod( "mbrDuals",
 #' \dontrun{
 #' 
 #' ##--- compute a TNI for tfs1
-#' tni1 <- new("TNI", gexp=gexp, transcriptionFactors=tfs1)
-#' tni1 <- tni.preprocess(tni1, gexpIDs=annot)
+#' tni1 <- new("TNI", gexp=gexp, regulatoryElements=tfs1)
+#' tni1 <- tni.preprocess(tni1, rowAnnotation=annot)
 #' tni1 <-tni.permutation(tni1)
 #' tni1 <-tni.bootstrap(tni1)
+#' tni1 <-tni.dpi.filter(tni1)
 #' 
 #' ##--- compute a TNI for tfs2
-#' tni2 <- new("TNI", gexp=gexp, transcriptionFactors=tfs2)
-#' tni2 <- tni.preprocess(tni2, gexpIDs=annot)
+#' tni2 <- new("TNI", gexp=gexp, regulatoryElements=tfs2)
+#' tni2 <- tni.preprocess(tni2, rowAnnotation=annot)
 #' tni2 <-tni.permutation(tni2)
 #' tni2 <-tni.bootstrap(tni2)
+#' tni2 <-tni.dpi.filter(tni2)
 #' 
 #' ##--- run tni2mbrPreprocess
 #' rmbr <- tni2mbrPreprocess(tni1, tni2)
@@ -792,19 +820,19 @@ setMethod("tni2mbrPreprocess",
             if(!is.null(regulatoryElements1)){
               mbr.checks(name="regulatoryElements1", para=regulatoryElements1)
               regulatoryElements1 <- .checkRegel(TNI1, regulatoryElements1)
-              TNI1@transcriptionFactors <- regulatoryElements1
+              TNI1@regulatoryElements <- regulatoryElements1
             }
             if(!is.null(regulatoryElements2)){
               mbr.checks(name="regulatoryElements2", para=regulatoryElements2)
               regulatoryElements2 <- .checkRegel(TNI2, regulatoryElements2)
-              TNI2@transcriptionFactors <- regulatoryElements2
+              TNI2@regulatoryElements <- regulatoryElements2
             }
             ##---- check processing
             .checkTNIsProcessing(tni1=TNI1, tni2=TNI2, verbose=verbose)
             #---get
             gexp <- tni.get(TNI1, what="gexp")
-            regulatoryElements1 <- tni.get(TNI1, what="tfs")
-            regulatoryElements2 <- tni.get(TNI2, what="tfs")
+            regulatoryElements1 <- tni.get(TNI1, what="regulatoryElements")
+            regulatoryElements2 <- tni.get(TNI2, what="regulatoryElements")
             ##---- creates MBR object
             object <- .MBRmaker(gexp=gexp,
                                 regulatoryElements1=regulatoryElements1,
@@ -872,7 +900,7 @@ setMethod( "show",
 #' 
 #' ##--- run mbrPreprocess
 #' rmbr <- mbrPreprocess(gexp=gexp, regulatoryElements1 = tfs1, 
-#' regulatoryElements2=tfs2, gexpIDs=annot)
+#' regulatoryElements2=tfs2, rowAnnotation=annot)
 #' 
 #' ##--- get the 'TNI1' slot using 'mbrGet'
 #' tni1 <- mbrGet(rmbr, what="TNI1")

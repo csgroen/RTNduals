@@ -83,7 +83,7 @@
   qtmat <- as.numeric(abs(regcor))
   n <- sum(!is.na(qtmat))
   if(n>100) n <- 100
-  qtmat <- cut(qtmat, breaks=quantile(qtmat, (0:n)/n, na.rm=TRUE), 
+  qtmat <- cut(qtmat, breaks=unique(quantile(qtmat, (0:n)/n, na.rm=TRUE)), 
                include.lowest=TRUE)
   qtmat <- as.numeric(qtmat)/n
   qtmat <- matrix(qtmat, ncol=ncol(regcor), nrow=nrow(regcor), 
