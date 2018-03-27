@@ -22,9 +22,9 @@
   sum.info.para$TNIs$perm <- NA
   sum.info.para$TNIs$boot <- NA
   sum.info.para$TNIs$dpi <- NA
-  sum.info.para$MBR$association <- matrix(NA, 1, 3)
+  sum.info.para$MBR$association <- matrix(NA, 1, 4)
   colnames(sum.info.para$MBR$association) <- c('minRegulonSize','prob',
-                                               'estimator')
+                                               'estimator', 'pAdjustMethod')
   rownames(sum.info.para$MBR$association) <- 'Parameter'
   #---summary dualsInformation
   sum.info.summary <- list()
@@ -445,7 +445,7 @@ setMethod("mbrDpiFilter",
 #'
 #' @import RTN 
 #' @importFrom stats p.adjust phyper
-#' @importFrom stats cor quantile
+#' @importFrom stats cor quantile pt
 #'
 #' @import methods
 #' @docType methods
@@ -455,19 +455,24 @@ setMethod("mbrDpiFilter",
 
 ##------------------------------------------------------------------------------
 ##Inference of duals
+## for testing:  
+# regulatoryElements1=NULL; regulatoryElements2=NULL;
+# minRegulonSize=15; prob=0.75; estimator='spearman'; pCutoff = 0.01;
+# pAdjustMethod="BH"; verbose=TRUE;
+
 setMethod("mbrAssociation",
           "MBR",
           function(object, regulatoryElements1=NULL, regulatoryElements2=NULL, 
-                   minRegulonSize=15, prob=0.95, estimator='spearman', 
+                   minRegulonSize=15, prob=0.95, estimator='spearman',
                    pAdjustMethod="BH", verbose=TRUE)
           {
             ##--- input check
             if(object@status["Preprocess"]!="[x]")
-              stop("NOTE: MBR object is not compleate: requires preprocessing!")
+              stop("NOTE: MBR object is not complete: requires preprocessing!")
             if(object@status["Permutation"]!="[x]")
-              stop("NOTE: MBR object is not compleate: requires permutation/bootstrap and DPI filter!")  
+              stop("NOTE: MBR object is not complete: requires permutation/bootstrap and DPI filter!")  
             if(object@status["DPI.filter"]!="[x]")
-              stop("NOTE: MBR object is not compleate: requires DPI filter!")
+              stop("NOTE: MBR object is not complete: requires DPI filter!")
             ##--- gets
             TNI1 <- mbrGet(object, what="TNI1")
             TNI2 <- mbrGet(object, what="TNI2")
@@ -479,51 +484,54 @@ setMethod("mbrAssociation",
             mbr.checks(name="estimator", para=estimator)
             mbr.checks(name="pAdjustMethod", para=pAdjustMethod)
             mbr.checks(name="verbose", para=verbose)
-            if(is.null(regulatoryElements1))
-            {
+            if(is.null(regulatoryElements1)) {
               if(verbose) 
                 cat("-Selecting regulatory elements from TNI1 object...\n")
               regulatoryElements1 <- tni.get(TNI1, "regulatoryElements")
-            } else
-            {
+            } else {
               regulatoryElements1 <- .checkRegel(TNI1, regulatoryElements1)
-            }
-            if(is.null(regulatoryElements2))
-            {
-              if(verbose) 
-                cat("-Selecting regulatory elements from TNI2 object...\n")
+            } 
+            
+            if(is.null(regulatoryElements2)) {
+              if(verbose) {
+                  cat("-Selecting regulatory elements from TNI2 object...\n")
+              }
               regulatoryElements2 <- tni.get(TNI2, "regulatoryElements")
-            } else
-            {
+            } else {
               regulatoryElements2 <- .checkRegel(TNI2, regulatoryElements2)
             }
             mbr.checks(name="numberRegElements", para=regulatoryElements1)
             mbr.checks(name="numberRegElements", para=regulatoryElements2)
             
             ##--- get regulons
-            what <- "regulons.and.mode"
+            what <- "refregulons.and.mode"
             regulons1 <- tni.get(TNI1, what=what)
             regulons2 <- tni.get(TNI2, what=what)
             
             ##--- get regulatory elements
             regulons1 <- regulons1[regulatoryElements1]
             regulons2 <- regulons2[regulatoryElements2]
+            size1 <- sapply(regulons1, length)
+            size2 <- sapply(regulons2, length)
             
-            ##--- get regulons by min size
-            size1 <- unlist(lapply(regulons1, length))
-            size2 <- unlist(lapply(regulons2, length))
-            ##---
-            if( sum(size1)==0 | sum(size2)==0){
+            ##--- get DPI regs for size filtering
+            dpireg1 <- tni.get(TNI1, "regulons")
+            dpireg2 <- tni.get(TNI2, "regulons")
+            dsize1 <- sapply(dpireg1, length)
+            dsize2 <- sapply(dpireg2, length)
+
+            ##--- check size
+            if( sum(size1)==0 | sum(size2)==0) {
               stop("NOTE: at least one input regulon should be above the 
                    'minRegulonSize' in both TNIs!",call.=FALSE)
             }
-            ##---
-            idx <- size1 >= (minRegulonSize)
+            ##--- filter those smaller than minRegulonSize
+            idx <- dsize1 >= (minRegulonSize)
             regulons1 <- regulons1[idx]
             regulatoryElements1 <- regulatoryElements1[idx]
             size1 <- size1[idx]
             ##---
-            idx <- size2 >= (minRegulonSize)
+            idx <- dsize2 >= (minRegulonSize)
             regulons2 <- regulons2[idx]
             regulatoryElements2 <- regulatoryElements2[idx]
             size2 <- size2[idx]
@@ -534,70 +542,105 @@ setMethod("mbrAssociation",
             targets <- unique(c(regel, targets))
             
             ##--- get mi
-            if(verbose) 
-              cat("-Extrating inferred regulatory associations...\n")
+            if(verbose) {
+                cat("-Extrating inferred regulatory associations...\n")
+            }
             tbmi1 <- .regMatrix(regulons1, regulatoryElements1, targets, getNames=FALSE)
             tbmi2 <- .regMatrix(regulons2, regulatoryElements2, targets, getNames=FALSE)
             
             ##--- compute correlation between regulators and targets
-            if(verbose) 
-              cat("-Computing correlation statistics between regulators and targets...\n")
+            if(verbose) {
+                cat("-Computing correlation statistics between regulators and targets...\n")
+            }
             tnet1 <- .tni.cor(tni_gexp, tbmi1, estimator=estimator, dg=0, 
                               asInteger=FALSE, mapAssignedAssociation=TRUE)
             tnet2 <- .tni.cor(tni_gexp, tbmi2, estimator=estimator, dg=0, 
                               asInteger=FALSE, mapAssignedAssociation=TRUE)
             
             ##--- compute correlation between regulons
-            if(verbose) 
-              cat("-Computing correlation statistics between regulon pairs...\n")
-            regcor <- cor(tnet1, tnet2, method=estimator)
+            if(verbose) {
+                cat("-Computing correlation statistics between regulon pairs...\n") 
+            }
+            regcor <- cor(tnet1, tnet2, method=estimator, use = "pairwise.complete.obs")
+            regcor[is.na(regcor)] <- 0
             intregs <- intersect(regulatoryElements1,regulatoryElements2)
             diag(regcor[intregs,intregs]) <- NA
+            regcor_res <- regcor
             regcor[intregs,intregs][upper.tri(regcor[intregs,intregs])] <- NA
             rownames(regcor) <- names(regulatoryElements1)
             colnames(regcor) <- names(regulatoryElements2)
+            rownames(regcor_res) <- names(regulatoryElements1)
+            colnames(regcor_res) <- names(regulatoryElements2)
             
             ##--- 
             testedDuals <- sum(!is.na(regcor))
-            if(testedDuals < 100){
+            if(testedDuals < 100) {
               tp1 <- paste("Only",testedDuals,"regulon pair(s) is(are) being tested!\n")
               tp2 <- "Ideally, the search space should represent all possible\n"
               tp3 <- "combinations of a given class of regulators! For example,\n"
               tp4 <- "all nuclear receptors annotated for a given species."
               warning(tp1,tp2,tp3,tp4, call.=FALSE)
             }
+            
+            #-- P-value + Padjust
+            # p_statlist <- .motifsquantile(regcor=regcor, prob=0)
+            # 
+            # p_statlist <- .corPval(p_statlist, regulatoryElements1, regulatoryElements2,
+            #                        regulons1, regulons2, pAdjustMethod, pCutoff)
+            
             ##--- select motifs based on 'prob' quantile
-            if(verbose) cat("-Computing quantile statistics...\n")
+            if(verbose) {
+                cat("-Computing quantile statistics...\n")
+            }
+            # topduals <- rownames(.motifsquantile(regcor=regcor, prob=prob))
+            # inferredDuals <- length(topduals)
+            # statlist <- p_statlist[topduals,]
             statlist <- .motifsquantile(regcor=regcor, prob=prob)
             inferredDuals <- nrow(statlist)
             
-            if(inferredDuals > 0){
+            if(inferredDuals > 0) {
               ##--- Mutual Information
-              if(verbose)cat("-Computing Mutual Information...\n")
+              if(verbose) {
+                  cat("-Computing Mutual Information...\n")
+              }
               statlist <- .getMI(statlist, tbmi1, regulatoryElements1, 
                                  regulatoryElements2, size1, size2)
+              
               ##--- PadjustValue
               if(!is.null(TNI1@results$adjpv)) {
                 pvmat <- TNI1@results$adjpv
                 cutoff <- tni_para$perm$pValueCutoff
-                statlist <- .getPMI(statlist, pvmat, regulatoryElements1, 
+                statlist <- .getPMI(statlist, pvmat, regulatoryElements1,
                                     regulatoryElements2, cutoff=cutoff)
               }
+              
               ##--- Jaccard
-              if(verbose)cat("-Computing Jaccard similarity...\n")
+              if(verbose) {
+                  cat("-Computing Jaccard similarity...\n")
+              }
               statlist <- .jcOverlap(statlist, regulatoryElements1, 
                                      regulatoryElements2, 
                                      tnet1, tnet2)
-              ##--- Hypergeometric
-              if(verbose)cat("-Running hypergeometric analysis...\n")
-              universe <- rownames(tni_gexp)
-              hyperresults <- .mbr.hyper(.statlist=statlist, 
-                                         regulons1=regulons1, regulons2=regulons2, 
-                                         regulatoryElements1, regulatoryElements2,
-                                         universe=universe, pAdjustMethod=pAdjustMethod, 
-                                         verbose=verbose)
-              statlist$Hypergeometric.Pvalue <- hyperresults$Pvalue
-              statlist$Hypergeometric.Adjusted.Pvalue <- hyperresults$Adjusted.Pvalue
+              
+              #--- Hypergeometric
+              if(verbose) {
+                  cat("-Running hypergeometric analysis...\n")
+              }
+              if(nrow(statlist) > 0) {
+                  universe <- rownames(tni_gexp)
+                  hyperresults <- .mbr.hyper(.statlist=statlist,
+                                             regulons1=regulons1, regulons2=regulons2,
+                                             regulatoryElements1, regulatoryElements2,
+                                             universe=universe, pAdjustMethod=pAdjustMethod,
+                                             verbose=verbose)
+                  statlist$Hypergeometric.Pvalue <- hyperresults$Pvalue
+                  statlist$Hypergeometric.Adjusted.Pvalue <- hyperresults$Adjusted.Pvalue
+              } else {
+                  statlist$Hypergeometric.Pvalue <- character(0)
+                  statlist$Hypergeometric.Adjusted.Pvalue <- character(0)
+                  hyperresults <- NA
+              }
+
             } else {
               warning("No 'dual regulon' has been observed for the input parameters.",
                       call.=FALSE)
@@ -619,7 +662,7 @@ setMethod("mbrAssociation",
             
             ##--- para
             mbr_para <- mbrGet(object,what="para")
-            sum.info.par <- c(minRegulonSize, prob, estimator)
+            sum.info.par <- c(minRegulonSize, prob, estimator, pAdjustMethod)
             mbr_para$MBR$association['Parameter', ] <- sum.info.par
             
             ##---
@@ -641,10 +684,11 @@ setMethod("mbrAssociation",
                                para=rownames(statlist), object=object)
             object <- .mbr.set(name="dualsInformation", 
                                para=statlist, object=object)
-            object <- .mbr.set(name="hypergeometricResults", 
-                               para=hyperresults, object=object)    
+            object <- .mbr.set(name="hypergeometricResults",
+                               para=hyperresults, object=object)
+            object@results$regcor <- regcor_res
             return(object)
-            }
+          }
 )
 
 
@@ -888,7 +932,7 @@ setMethod( "show",
 #' @param what a single character value specifying which information should be 
 #' retrieved from the slots. Options: "TNI1", "TNI2", "testedElementsTNI1", 
 #' "testedElementsTNI2", "dualRegulons", "results", "para", "summary", 
-#' "status" and "dualsInformation"
+#' "status", "dualsInformation" and "regCorMatrix"
 #' @return A slot content from a object of class 'MBR' \linkS4class{MBR} object
 #' @examples
 #' ##--- load a dataset for demonstration
@@ -921,29 +965,25 @@ setMethod( "mbrGet",
              mbr.checks(name="mbrGet", para=what)
              ##---Association options any change needs update!
              optsAssoci <- c("testedElementsTNI1", "testedElementsTNI2", 
-                             "results", "dualRegulons", "dualsInformation")
+                             "results", "dualRegulons", "dualsInformation",
+                             "regCorMatrix")
              ##---get query
              if(what=="TNI1")
              {
                query <- object@TNI1
-             }
-             else if(what=="TNI2")
+             } else if(what=="TNI2")
              {
                query <- object@TNI2
-             }
-             else if(what=="para")
+             } else if(what=="para")
              {
                query <- object@para
-             }
-             else if(what=="summary")
+             } else if(what=="summary")
              {
                query <- object@summary
-             }
-             else if(what=="status")
+             } else if(what=="status")
              {
                query <- object@status
-             }
-             else if(what%in%optsAssoci)
+             } else if(what%in%optsAssoci)
              {
                if(object@status["Association"] != "[x]")
                {
@@ -954,22 +994,20 @@ setMethod( "mbrGet",
                  if(what=="testedElementsTNI1")
                  {
                    query <- object@testedElementsTNI1
-                 }
-                 else if(what=="testedElementsTNI2")
+                 } else if(what=="testedElementsTNI2")
                  {
                    query <- object@testedElementsTNI2
-                 }
-                 else if(what=="dualRegulons")
+                 } else if(what=="dualRegulons")
                  {
                    query <- object@dualRegulons
-                 }
-                 else if(what=="results")
+                 } else if(what=="results")
                  {
                    query <- object@results
-                 }
-                 else if(what=="dualsInformation")
+                 } else if(what=="dualsInformation")
                  {
                    query <- object@results$dualsInformation
+                 } else if(what=="regCorMatrix") {
+                     query <- object@results$regcor
                  }
                }
              }

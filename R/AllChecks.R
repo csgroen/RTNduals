@@ -54,6 +54,11 @@ mbr.checks <- function(name, para, paraSuppl)
     if(!is.singleNumber(para) || (!para>=0) && (!para<=1))
       stop("NOTE: 'prob' should be a numeric value >= 0 and <= 1!", call.=FALSE)
   }
+    ##---
+    else if(name == "pCutoff"){
+        if(!is.singleNumber(para) || (!para>=0) && (!para<=1))
+            stop("NOTE: 'pCutoff' should be a numeric value >= 0 and <= 1!", call.=FALSE)
+    }
   
   ##---
   else if(name == "alpha"){
@@ -168,8 +173,7 @@ mbr.checks <- function(name, para, paraSuppl)
     opts <- c("summary", "status", "results", 
               "dualRegulons", "dualsInformation",
               "TNI1", "TNI2", "testedElementsTNI1", 
-              "testedElementsTNI2","para"
-              )
+              "testedElementsTNI2","para","regCorMatrix")
     if(!is.character(para) || length(para)!=1 || !(para %in% opts))
       stop(paste("NOTE: 'what' should be any one of the options:", 
                  paste(opts,collapse = ", ") ), call.=FALSE)

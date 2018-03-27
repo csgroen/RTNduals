@@ -7,17 +7,17 @@
 .checkRegel <- function(tni, regulatoryElements)
 {
   #---check regulatoryElements
-  tp <- sapply(colnames(tni@annotation), function(i) {
-    sum(regulatoryElements%in%tni@annotation[, i])
+  tp <- sapply(colnames(tni@rowAnnotation), function(i) {
+    sum(regulatoryElements%in%tni@rowAnnotation[, i])
   })
   colid <- names(tp[which.max(tp)])
-  idx <- which(tni@annotation[, colid]%in%regulatoryElements)
+  idx <- which(tni@rowAnnotation[, colid]%in%regulatoryElements)
   if(length(idx) < length(regulatoryElements)) {
-    warning("Not all 'regulatory elements' are available in the 'TNI' annotation!",
+    warning("Not all 'regulatory elements' are available in the 'TNI' rowAnnotation!",
             call.=FALSE)
   }
-  regulatoryElements <- tni@annotation[idx,]
-  idx <- match(rownames(regulatoryElements), tni@transcriptionFactors)
+  regulatoryElements <- tni@rowAnnotation[idx,]
+  idx <- match(rownames(regulatoryElements), tni@regulatoryElements)
   if(length(idx)==0){
     tp <- paste("NOTE: no 'regulatory element' has been used to call",
                 "regulons in the provided 'TNI'!")
@@ -27,7 +27,7 @@
                 "regulons in the provided 'TNI'!")
     warning(tp, call.=FALSE)
   }
-  regulatoryElements <- tni@transcriptionFactors[idx]
+  regulatoryElements <- tni@regulatoryElements[idx]
   return (regulatoryElements)
   }
 
@@ -82,10 +82,10 @@
 {
   qtmat <- as.numeric(abs(regcor))
   n <- sum(!is.na(qtmat))
-  if(n>100) n <- 100
-  qtmat <- cut(qtmat, breaks=unique(quantile(qtmat, (0:n)/n, na.rm=TRUE)), 
-               include.lowest=TRUE)
-  qtmat <- as.numeric(qtmat)/n
+  bks <- unique(quantile(qtmat, (0:n)/n, na.rm=TRUE))
+  unique_n <- length(bks)-1
+  qtmat <- cut(qtmat, breaks=bks, include.lowest=TRUE)
+  qtmat <- as.numeric(qtmat)/unique_n
   qtmat <- matrix(qtmat, ncol=ncol(regcor), nrow=nrow(regcor), 
                    dimnames=list(rownames(regcor), colnames(regcor)))
   return(qtmat)
@@ -126,7 +126,8 @@
                         overlap=c("all","agreement","disagreement")){
   overlap <- match.arg(overlap)
   if(overlap == "all"){
-    tnet[tnet != 0] <- 1
+      tnet[is.na(tnet)] <- 0
+      tnet[tnet != 0] <- 1
     jc <- function(x, xmat){
       c <- x+xmat
       a <- colSums(c == 2)
@@ -175,9 +176,9 @@
   })
   .statlist <- cbind(.statlist, MI=mutinf[1, ], Size.Regulon1=mutinf[2, ],
                  Size.Regulon2=mutinf[3, ])
-  tp <- c("Regulon1", "Size.Regulon1", "Regulon2", "Size.Regulon2", "MI", 
-          "R", "Quantile")
-  .statlist <- .statlist[, tp]
+  # tp <- c("Regulon1", "Size.Regulon1", "Regulon2", "Size.Regulon2", "MI", 
+  #         "R", "Quantile")
+  # .statlist <- .statlist[, tp]
   .statlist <- .statlist[which(.statlist$MI != 0), ]
   return (.statlist)
 }
@@ -192,7 +193,7 @@
     pvmat[reg2, reg1]
   })
   .statlist <- cbind(.statlist, MI.Adjusted.Pvalue=pvinf)
-  .statlist$MI.Adjusted.Pvalue[.statlist$MI.Adjusted.Pvalue<cutoff] <- paste("<", cutoff, sep="")
+  # .statlist$MI.Adjusted.Pvalue[.statlist$MI.Adjusted.Pvalue<cutoff] <- paste("<", cutoff, sep="")
   tp <- c("Regulon1", "Size.Regulon1", "Regulon2", "Size.Regulon2", "MI", 
           "MI.Adjusted.Pvalue", "R", "Quantile")
   .statlist <- .statlist[, tp]
@@ -219,7 +220,7 @@
   #--
   pcorm<-t(pcorm)
   colnames(pcorm)<-tfs
-  if(mapAssignedAssociation)pcorm[tnet==0]=0
+  if(mapAssignedAssociation)pcorm[tnet==0]=NA
   pcorm
 }
 
@@ -384,6 +385,33 @@
   object <- .mbr.set(name="dualsInformation", para=dualsInformation, object=object)
   return (object)
 }
+##------------------------------------------------------------------------------
+#internal function for 'mbrAssociatioj'
+##add correlation p-value
+.corPval <- function(p_statlist, regulatoryElements1, regulatoryElements2,
+                              regulons1, regulons2, pAdjustMethod, pCutoff) {
+    
+    reg_overlaps <- sapply(1:nrow(p_statlist), function(i) {
+        regEl1 <- regulatoryElements1[p_statlist$Regulon1[i]]
+        regEl2 <- regulatoryElements2[p_statlist$Regulon2[i]]
+        length(intersect(names(regulons1[[regEl1]]), names(regulons2[[regEl2]])))
+    })
+    
+    N <- mean(reg_overlaps) - 1
+    if (N < 1) N = 1
+    R <- p_statlist$R
+    p_statlist$P.value <- 2 * pt( -abs( R*sqrt((N-2)/(1-R^2)) ), N-2)
+    p_statlist$P.adjusted <- p.adjust(2 * pt( -abs( R*sqrt((N-2)/(1-R^2)) ), N-2), method = pAdjustMethod)
+    p_statlist <- p_statlist[p_statlist$P.adjusted < pCutoff,]
+    p_statlist$P.value[p_statlist$P.value < 1e-16] <- "< 1e-16"
+    p_statlist$P.adjusted[p_statlist$P.adjusted < 1e-16] <- "< 1e-16"
+    
+    return(p_statlist)
+    
+}
+
+
+
 ##------------------------------------------------------------------------------
 #".mbr.set" internal function
 ##it setts the slots of a MBR object

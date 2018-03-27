@@ -75,7 +75,7 @@ mbrPlotDuals <- function(object, names.duals=NULL, filepath=NULL,
     reg1 <- mtfs[1]
     reg2 <- mtfs[2]
     rval <- as.numeric(mtfs[3])
-    pval <- as.numeric(mtfs[4])
+    pval <- mtfs[4]
     labelMotif <- paste("dual_", reg1,"_vs_" ,reg2, sep="")
     if(!is.null(filepath)){
       filename <- paste(path.expand(filepath), labelMotif, sep="/")
@@ -141,9 +141,7 @@ mbrPlotDuals <- function(object, names.duals=NULL, filepath=NULL,
   title(xlab=xlab,ylab=ylab,cex.lab=1)
   
   ##---legend
-  if(pval < 2e-16){
-    pval <- "< 2e-16"
-  } else {
+  if(!is.character(pval)) {
     pval <- paste("= ",signif(pval,2),sep="")
   }
   legs <- paste("Adj.Pval ", pval, sep="")
@@ -154,7 +152,7 @@ mbrPlotDuals <- function(object, names.duals=NULL, filepath=NULL,
     points(tpp, col=lncols[1], pch=21, cex=0.7, bg=bgcols[1], lwd=lwd)
     tpp<-xy[sign(tnet[, 1])==-1 & sign(tnet[, 2])==1,]
     points(tpp,col=lncols[1],pch=21,cex=0.7,bg="white", lwd=lwd)
-    legend("topright", legs, bty="n", cex = 0.9)
+    legend("topright", legs, bty="n", cex = 0.7)
   } else {
     ##---positive Dual
     tpp<-xy[rowSums(sign(tnet))==2, ]
@@ -214,9 +212,9 @@ mbrPlotDuals <- function(object, names.duals=NULL, filepath=NULL,
       stop ("NOTE: Not all names are available for dual regulons! \n", 
             call.=FALSE)
     ##----
-    motifstb <- motifstb[names.duals, c("Regulon1","Regulon2", "R", "Hypergeometric.Adjusted.Pvalue")]
+    motifstb <- motifstb[names.duals, c("Regulon1","Regulon2", "R", "Hypergeometric.Pvalue")]
   } else {
-    motifstb <- motifstb[, c("Regulon1", "Regulon2", "R", "Hypergeometric.Adjusted.Pvalue")]
+    motifstb <- motifstb[, c("Regulon1", "Regulon2", "R", "P.adjusted")]
   }
   motifstb[, 3] <- round(motifstb[, 3], 2)
   return(motifstb)
